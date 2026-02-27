@@ -207,6 +207,34 @@
       color: #475569; cursor: pointer; transition: border-color 0.15s, color 0.15s;
     }
     .ctrl-btn:hover { border-color: #7C3AED; color: #7C3AED; }
+    /* ── Filter bar ── */
+    .filter-bar {
+      background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px;
+      padding: 14px 20px; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+    }
+    .filter-group {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .filter-group label {
+      font-size: 12px; font-weight: 600; color: #64748B;
+      text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap;
+    }
+    .filter-group input[type="date"] {
+      padding: 5px 8px; font-size: 13px; font-family: 'Poppins', sans-serif;
+      border: 1.5px solid #CBD5E1; border-radius: 6px; color: #0F172A;
+      background: #fff; outline: none; cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .filter-group input[type="date"]:focus { border-color: #7C3AED; }
+    .filter-sep { font-size: 12px; color: #94A3B8; }
+    .filter-reset {
+      margin-left: auto; background: none; border: 1.5px solid #CBD5E1;
+      border-radius: 6px; padding: 5px 12px; font-size: 12px;
+      font-family: 'Poppins', sans-serif; color: #475569; cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .filter-reset:hover { border-color: #E11D48; color: #E11D48; }
     /* ── Error banner ── */
     #errorBanner {
       display: none; background: #FFF1F2; border: 1px solid #FECDD3;
@@ -245,6 +273,23 @@
       <button class="ctrl-btn" onclick="refreshData()">↻ Refresh</button>
       <button class="ctrl-btn" onclick="changeApiKey()">Change API Key</button>
     </div>
+  </div>
+
+  <!-- ── Filter Bar ── -->
+  <div class="filter-bar" id="filterBar" style="display:none">
+    <div class="filter-group">
+      <label>Created</label>
+      <input type="date" id="createdFrom" onchange="applyFilters()" />
+      <span class="filter-sep">→</span>
+      <input type="date" id="createdTo" onchange="applyFilters()" />
+    </div>
+    <div class="filter-group">
+      <label>Closed</label>
+      <input type="date" id="closedFrom" onchange="applyFilters()" />
+      <span class="filter-sep">→</span>
+      <input type="date" id="closedTo" onchange="applyFilters()" />
+    </div>
+    <button class="filter-reset" onclick="resetFilters()">✕ Reset filters</button>
   </div>
 
   <!-- ── Summary Row ── -->
@@ -372,6 +417,9 @@
   </div>
 
   <script>
+    // ── Cached raw issues (avoids re-fetching on filter change) ──
+    let cachedIssues = null;
+
     // ── Linear API Configuration ──
     const PROJECT_ID = '87d18069-e9b5-48c2-913e-d71df670ff91';
     const LINEAR_API = 'https://api.linear.app/graphql';
@@ -1021,6 +1069,44 @@
       renderCharts(data);
     }
 
+    // ── Filters ──
+    function getFilteredIssues() {
+      if (!cachedIssues) return [];
+      const createdFrom = document.getElementById('createdFrom').value;
+      const createdTo   = document.getElementById('createdTo').value;
+      const closedFrom  = document.getElementById('closedFrom').value;
+      const closedTo    = document.getElementById('closedTo').value;
+
+      return cachedIssues.filter(issue => {
+        const created = new Date(issue.createdAt);
+        if (createdFrom && created < new Date(createdFrom)) return false;
+        if (createdTo   && created > new Date(createdTo + 'T23:59:59')) return false;
+
+        if (closedFrom || closedTo) {
+          // If a closed filter is set, non-closed issues are excluded
+          if (!issue.completedAt) return false;
+          const closed = new Date(issue.completedAt);
+          if (closedFrom && closed < new Date(closedFrom)) return false;
+          if (closedTo   && closed > new Date(closedTo + 'T23:59:59')) return false;
+        }
+
+        return true;
+      });
+    }
+
+    function applyFilters() {
+      if (!cachedIssues) return;
+      const data = processIssues(getFilteredIssues());
+      renderDashboard(data);
+    }
+
+    function resetFilters() {
+      ['createdFrom','createdTo','closedFrom','closedTo'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      applyFilters();
+    }
+
     async function init() {
       hideError();
       const apiKey = localStorage.getItem('linear_api_key');
@@ -1028,8 +1114,9 @@
 
       showLoading('Loading data from Linear…');
       try {
-        const issues = await fetchAllIssues(apiKey);
-        const data = processIssues(issues);
+        cachedIssues = await fetchAllIssues(apiKey);
+        document.getElementById('filterBar').style.display = 'flex';
+        const data = processIssues(cachedIssues);
         renderDashboard(data);
         document.getElementById('lastUpdated').textContent =
           'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -1052,8 +1139,9 @@
 
       showLoading('Refreshing data from Linear…');
       try {
-        const issues = await fetchAllIssues(apiKey);
-        const data = processIssues(issues);
+        cachedIssues = await fetchAllIssues(apiKey);
+        document.getElementById('filterBar').style.display = 'flex';
+        const data = processIssues(getFilteredIssues());
         renderDashboard(data);
         document.getElementById('lastUpdated').textContent =
           'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
