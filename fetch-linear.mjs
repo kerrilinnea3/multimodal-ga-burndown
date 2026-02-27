@@ -17,6 +17,7 @@ const QUERY = `
       nodes {
         id
         title
+        url
         state { name type }
         labels(first: 10) { nodes { name } }
         createdAt
