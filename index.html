@@ -541,8 +541,10 @@
 
     function buildTimeSeries(issues) {
       if (!issues.length) return [];
-      const startDate = new Date(Math.min(...issues.map(i => +new Date(i.createdAt))));
-      startDate.setHours(0, 0, 0, 0);
+      const earliest = new Date(Math.min(...issues.map(i => +new Date(i.createdAt))));
+      earliest.setHours(0, 0, 0, 0);
+      const floor = new Date('2026-02-11T00:00:00');
+      const startDate = earliest > floor ? earliest : floor;
       const today = new Date();
       today.setHours(23, 59, 59, 999);
 
