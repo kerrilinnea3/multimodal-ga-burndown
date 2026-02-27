@@ -159,35 +159,114 @@
       color: #94A3B8;
       font-weight: 400;
     }
+
+    /* ── Modal overlay ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(15,23,42,0.75);
+      display: flex; align-items: center; justify-content: center; z-index: 9999;
+    }
+    .modal-box {
+      background: #FFFFFF; border-radius: 12px; padding: 40px 48px;
+      max-width: 440px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      text-align: center;
+    }
+    .modal-box h2 { font-size: 22px; font-weight: 700; color: #0F172A; margin-bottom: 12px; }
+    .modal-box p { font-size: 14px; color: #475569; margin-bottom: 20px; line-height: 1.6; }
+    .modal-box input {
+      width: 100%; padding: 10px 14px; font-size: 14px; font-family: 'Poppins', sans-serif;
+      border: 1.5px solid #CBD5E1; border-radius: 6px; margin-bottom: 14px; outline: none;
+      transition: border-color 0.2s;
+    }
+    .modal-box input:focus { border-color: #7C3AED; }
+    .modal-box .modal-btn {
+      width: 100%; padding: 11px; background: #7C3AED; color: #fff;
+      font-size: 15px; font-weight: 600; font-family: 'Poppins', sans-serif;
+      border: none; border-radius: 6px; cursor: pointer; transition: background 0.15s;
+    }
+    .modal-box .modal-btn:hover { background: #6D28D9; }
+    .modal-box .modal-link { display: block; margin-top: 14px; font-size: 13px; color: #7C3AED; }
+    .modal-error { color: #E11D48; font-size: 13px; margin-bottom: 10px; display: none; }
+    /* ── Loading spinner ── */
+    #loadingOverlay {
+      display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.9);
+      align-items: center; justify-content: center; z-index: 8888; flex-direction: column; gap: 16px;
+    }
+    #loadingOverlay.active { display: flex; }
+    .spinner {
+      width: 48px; height: 48px; border: 4px solid #E2E8F0;
+      border-top-color: #7C3AED; border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loadingOverlay p { color: #64748B; font-size: 14px; font-family: 'Poppins', sans-serif; }
+    /* ── Header controls ── */
+    .header-controls { display: flex; align-items: center; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+    .header-controls span { font-size: 12px; color: #94A3B8; }
+    .ctrl-btn {
+      background: none; border: 1.5px solid #CBD5E1; border-radius: 6px;
+      padding: 5px 12px; font-size: 12px; font-family: 'Poppins', sans-serif;
+      color: #475569; cursor: pointer; transition: border-color 0.15s, color 0.15s;
+    }
+    .ctrl-btn:hover { border-color: #7C3AED; color: #7C3AED; }
+    /* ── Error banner ── */
+    #errorBanner {
+      display: none; background: #FFF1F2; border: 1px solid #FECDD3;
+      border-radius: 8px; padding: 14px 18px; margin-bottom: 20px;
+      color: #E11D48; font-size: 14px;
+    }
   </style>
 </head>
 <body>
 
+  <!-- API Key Modal -->
+  <div id="apiKeyModal" class="modal-overlay" style="display:none">
+    <div class="modal-box">
+      <h2>Connect to Linear</h2>
+      <p>Enter your Linear personal API key to load live project data.</p>
+      <div class="modal-error" id="modalError">Invalid API key. Please try again.</div>
+      <input type="password" id="apiKeyInput" placeholder="lin_api_..." />
+      <button class="modal-btn" onclick="saveApiKey()">Connect</button>
+      <a class="modal-link" href="https://linear.app/settings/api" target="_blank">Get your API key →</a>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay">
+    <div class="spinner"></div>
+    <p id="loadingMsg">Loading data from Linear…</p>
+  </div>
+
+  <!-- Error Banner -->
+  <div id="errorBanner"></div>
+
   <div class="page-header">
     <h1>Multimodal GA Burndown</h1>
-    <p>Week of Feb 23 – Feb 26, 2026</p>
+    <div class="header-controls">
+      <span id="lastUpdated">Loading…</span>
+      <button class="ctrl-btn" onclick="refreshData()">↻ Refresh</button>
+      <button class="ctrl-btn" onclick="changeApiKey()">Change API Key</button>
+    </div>
   </div>
 
   <!-- ── Summary Row ── -->
   <div class="summary-row">
     <div class="summary-card">
       <div class="summary-card-label">Tickets Closed</div>
-      <div class="summary-card-value" style="color:#0D9488">30</div>
+      <div class="summary-card-value" style="color:#0D9488" id="sum-closed">—</div>
       <div class="summary-card-sub">this week</div>
     </div>
     <div class="summary-card">
       <div class="summary-card-label">New Tickets Added</div>
-      <div class="summary-card-value" style="color:#E11D48">93</div>
+      <div class="summary-card-value" style="color:#E11D48" id="sum-new">—</div>
       <div class="summary-card-sub">this week</div>
     </div>
     <div class="summary-card">
       <div class="summary-card-label">Still Open</div>
-      <div class="summary-card-value" style="color:#D97706">122</div>
-      <div class="summary-card-sub">as of Feb 26</div>
+      <div class="summary-card-value" style="color:#D97706" id="sum-open">—</div>
+      <div class="summary-card-sub" id="sum-open-sub">as of today</div>
     </div>
     <div class="summary-card">
       <div class="summary-card-label">% Complete</div>
-      <div class="summary-card-value" style="color:#7C3AED">29%</div>
+      <div class="summary-card-value" style="color:#7C3AED" id="sum-pct">—</div>
       <div class="summary-card-sub">of all-time total</div>
     </div>
   </div>
@@ -197,47 +276,47 @@
     <!-- Voice/Video -->
     <div class="stat-card">
       <div class="stat-card-label c-video">Voice / Video</div>
-      <div class="stat-card-row"><span>Total</span><span>29</span></div>
-      <div class="stat-card-row"><span>Open</span><span>20</span></div>
-      <div class="stat-card-row"><span>Closed</span><span>9</span></div>
-      <div class="stat-card-progress"><div class="stat-card-progress-bar" style="width:31%;background:#7C3AED"></div></div>
-      <div class="stat-card-pct c-video">31% complete</div>
+      <div class="stat-card-row"><span>Total</span><span id="video-total">—</span></div>
+      <div class="stat-card-row"><span>Open</span><span id="video-open">—</span></div>
+      <div class="stat-card-row"><span>Closed</span><span id="video-closed">—</span></div>
+      <div class="stat-card-progress"><div class="stat-card-progress-bar" id="video-bar" style="width:0%;background:#7C3AED"></div></div>
+      <div class="stat-card-pct c-video" id="video-pct">—% complete</div>
     </div>
     <!-- Brain -->
     <div class="stat-card">
       <div class="stat-card-label c-brain">Brain</div>
-      <div class="stat-card-row"><span>Total</span><span>54</span></div>
-      <div class="stat-card-row"><span>Open</span><span>48</span></div>
-      <div class="stat-card-row"><span>Closed</span><span>6</span></div>
-      <div class="stat-card-progress"><div class="stat-card-progress-bar" style="width:11%;background:#0D9488"></div></div>
-      <div class="stat-card-pct c-brain">11% complete</div>
+      <div class="stat-card-row"><span>Total</span><span id="brain-total">—</span></div>
+      <div class="stat-card-row"><span>Open</span><span id="brain-open">—</span></div>
+      <div class="stat-card-row"><span>Closed</span><span id="brain-closed">—</span></div>
+      <div class="stat-card-progress"><div class="stat-card-progress-bar" id="brain-bar" style="width:0%;background:#0D9488"></div></div>
+      <div class="stat-card-pct c-brain" id="brain-pct">—% complete</div>
     </div>
     <!-- Just UI -->
     <div class="stat-card">
       <div class="stat-card-label c-ui">Just UI</div>
-      <div class="stat-card-row"><span>Total</span><span>48</span></div>
-      <div class="stat-card-row"><span>Open</span><span>30</span></div>
-      <div class="stat-card-row"><span>Closed</span><span>18</span></div>
-      <div class="stat-card-progress"><div class="stat-card-progress-bar" style="width:38%;background:#D97706"></div></div>
-      <div class="stat-card-pct c-ui">38% complete</div>
+      <div class="stat-card-row"><span>Total</span><span id="ui-total">—</span></div>
+      <div class="stat-card-row"><span>Open</span><span id="ui-open">—</span></div>
+      <div class="stat-card-row"><span>Closed</span><span id="ui-closed">—</span></div>
+      <div class="stat-card-progress"><div class="stat-card-progress-bar" id="ui-bar" style="width:0%;background:#D97706"></div></div>
+      <div class="stat-card-pct c-ui" id="ui-pct">—% complete</div>
     </div>
     <!-- Plumbing -->
     <div class="stat-card">
       <div class="stat-card-label c-plumbing">Plumbing / Other</div>
-      <div class="stat-card-row"><span>Total</span><span>23</span></div>
-      <div class="stat-card-row"><span>Open</span><span>17</span></div>
-      <div class="stat-card-row"><span>Closed</span><span>6</span></div>
-      <div class="stat-card-progress"><div class="stat-card-progress-bar" style="width:26%;background:#E11D48"></div></div>
-      <div class="stat-card-pct c-plumbing">26% complete</div>
+      <div class="stat-card-row"><span>Total</span><span id="plumbing-total">—</span></div>
+      <div class="stat-card-row"><span>Open</span><span id="plumbing-open">—</span></div>
+      <div class="stat-card-row"><span>Closed</span><span id="plumbing-closed">—</span></div>
+      <div class="stat-card-progress"><div class="stat-card-progress-bar" id="plumbing-bar" style="width:0%;background:#E11D48"></div></div>
+      <div class="stat-card-pct c-plumbing" id="plumbing-pct">—% complete</div>
     </div>
     <!-- Grand Total -->
     <div class="stat-card grand">
       <div class="stat-card-label c-grand">Grand Total</div>
-      <div class="stat-card-row"><span>Total</span><span>154</span></div>
-      <div class="stat-card-row"><span>Open</span><span>115</span></div>
-      <div class="stat-card-row"><span>Closed</span><span>39</span></div>
-      <div class="stat-card-progress"><div class="stat-card-progress-bar" style="width:25%;background:#94A3B8"></div></div>
-      <div class="stat-card-pct c-grand">25% complete</div>
+      <div class="stat-card-row"><span>Total</span><span id="grand-total">—</span></div>
+      <div class="stat-card-row"><span>Open</span><span id="grand-open">—</span></div>
+      <div class="stat-card-row"><span>Closed</span><span id="grand-closed">—</span></div>
+      <div class="stat-card-progress"><div class="stat-card-progress-bar" id="grand-bar" style="width:0%;background:#94A3B8"></div></div>
+      <div class="stat-card-pct c-grand" id="grand-pct">—% complete</div>
     </div>
   </div>
 
@@ -263,7 +342,7 @@
     </div>
     <div class="chart-card">
       <h2>Bug Ticket Distribution</h2>
-      <p class="chart-sub">Share of all 94 bug tickets by category</p>
+      <p class="chart-sub">Share of bug tickets by category (<span id="bug-total-label">0</span> total)</p>
       <div class="chart-wrap" style="height:360px">
         <canvas id="bugChart"></canvas>
       </div>
@@ -293,15 +372,42 @@
   </div>
 
   <script>
-    // Register datalabels only for charts that opt in
-    Chart.register(ChartDataLabels);
+    // ── Linear API Configuration ──
+    const PROJECT_ID = '87d18069-e9b5-48c2-913e-d71df670ff91';
+    const LINEAR_API = 'https://api.linear.app/graphql';
 
+    const ISSUES_QUERY = `
+      query GetProjectIssues($first: Int = 250, $after: String) {
+        issues(
+          first: $first
+          after: $after
+          filter: { project: { id: { eq: "${PROJECT_ID}" } } }
+        ) {
+          pageInfo { hasNextPage endCursor }
+          nodes {
+            id
+            title
+            state { name type }
+            labels(first: 10) { nodes { name } }
+            createdAt
+            completedAt
+          }
+        }
+      }
+    `;
+
+    // ── Chart instances (so we can destroy on refresh) ──
+    const chartInstances = {};
+
+    // ── Constants ──
     const COLORS = {
       video:    '#7C3AED',
       brain:    '#0D9488',
       ui:       '#D97706',
       plumbing: '#E11D48',
     };
+    const CAT_NAMES = { video: 'Voice/Video', brain: 'Brain', ui: 'Just UI', plumbing: 'Plumbing' };
+    const CAT_KEYS  = ['video', 'brain', 'ui', 'plumbing'];
 
     const tooltipDefaults = {
       backgroundColor: '#0F172A',
@@ -319,390 +425,651 @@
       grid:  { color: 'rgba(0,0,0,0.06)' },
     };
 
-    // ── 0. Total vs Closed by Category ──
-    const tvcLabels = ['Feb 18', 'Feb 19', 'Feb 20', 'Feb 21', 'Feb 22', 'Feb 23', 'Feb 24', 'Feb 25', 'Feb 26'];
-    const tvcTotal  = {
-      video:    [3,  7,  11, 11, 11, 20, 22, 24, 29],
-      brain:    [6,  12, 21, 22, 22, 26, 29, 38, 53],
-      ui:       [5,  9,  15, 16, 16, 22, 30, 35, 48],
-      plumbing: [6,  15, 23, 24, 24, 26, 28, 31, 36],
-    };
-    const tvcClosed = {
-      video:    [0, 1, 1,  2,  2,  2,  3,  4,  8],
-      brain:    [0, 0, 1,  2,  2,  3,  3,  5,  6],
-      ui:       [0, 0, 0,  2,  2,  3,  5, 10, 17],
-      plumbing: [0, 1, 6,  8,  8,  9,  9, 11, 13],
-    };
-    const tvcNames = { video: 'Voice/Video', brain: 'Brain', ui: 'Just UI', plumbing: 'Plumbing' };
-    const tvcKeys  = ['video', 'brain', 'ui', 'plumbing'];
+    // Register datalabels only for charts that opt in
+    Chart.register(ChartDataLabels);
 
-    const tvcDatasets = [];
-    tvcKeys.forEach((key) => {
-      const c = COLORS[key];
-      const fill = c.replace(')', ',0.12)').replace('rgb', 'rgba');
-      tvcDatasets.push({
-        label: `${tvcNames[key]} — Total`,
-        data: tvcTotal[key],
-        borderColor: c,
-        backgroundColor: `${c}1e`,
-        fill: '+1',
-        tension: 0.3,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        pointBackgroundColor: c,
-        borderWidth: 2.5,
-      });
-      tvcDatasets.push({
-        label: `${tvcNames[key]} — Closed`,
-        data: tvcClosed[key],
-        borderColor: c,
-        backgroundColor: 'transparent',
-        fill: false,
-        tension: 0.3,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        pointBackgroundColor: c,
-        borderWidth: 1.5,
-        borderDash: [5, 4],
+    // ── API Key Management ──
+    function showModal(error) {
+      document.getElementById('apiKeyModal').style.display = 'flex';
+      const errEl = document.getElementById('modalError');
+      if (error) { errEl.style.display = 'block'; errEl.textContent = error; }
+      else errEl.style.display = 'none';
+      document.getElementById('apiKeyInput').value = '';
+      setTimeout(() => document.getElementById('apiKeyInput').focus(), 50);
+    }
+
+    function hideModal() {
+      document.getElementById('apiKeyModal').style.display = 'none';
+    }
+
+    function saveApiKey() {
+      const key = document.getElementById('apiKeyInput').value.trim();
+      if (!key) return;
+      localStorage.setItem('linear_api_key', key);
+      hideModal();
+      init();
+    }
+
+    function changeApiKey() {
+      localStorage.removeItem('linear_api_key');
+      showModal();
+    }
+
+    // Allow Enter key in modal input
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('apiKeyInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') saveApiKey();
       });
     });
 
-    new Chart(document.getElementById('totalVsClosedChart'), {
-      type: 'line',
-      data: { labels: tvcLabels, datasets: tvcDatasets },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          datalabels: { display: false },
-          legend: {
-            labels: {
-              color: '#0F172A', font: { size: 13, family: 'Poppins' }, boxWidth: 14, padding: 16,
-              filter: (item) => item.text.includes('Total'),
-              generateLabels: (chart) =>
-                tvcKeys.map(key => ({
-                  text: tvcNames[key],
-                  fillStyle: COLORS[key] + '30',
-                  strokeStyle: COLORS[key],
-                  lineWidth: 2,
-                  hidden: false,
-                })),
-            }
+    // ── Loading State ──
+    function showLoading(msg) {
+      const overlay = document.getElementById('loadingOverlay');
+      overlay.classList.add('active');
+      if (msg) document.getElementById('loadingMsg').textContent = msg;
+    }
+
+    function hideLoading() {
+      document.getElementById('loadingOverlay').classList.remove('active');
+    }
+
+    function showError(msg) {
+      const banner = document.getElementById('errorBanner');
+      banner.style.display = 'block';
+      banner.textContent = '⚠ ' + msg;
+    }
+
+    function hideError() {
+      document.getElementById('errorBanner').style.display = 'none';
+    }
+
+    // ── Data Fetching ──
+    async function fetchAllIssues(apiKey) {
+      let all = [], cursor = null, hasMore = true;
+      while (hasMore) {
+        const resp = await fetch(LINEAR_API, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': apiKey,
           },
-          tooltip: {
-            ...tooltipDefaults,
-            callbacks: {
-              label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y}`,
-            }
-          }
-        },
-        scales: {
-          x: scaleDefaults,
-          y: { ...scaleDefaults, beginAtZero: true },
+          body: JSON.stringify({ query: ISSUES_QUERY, variables: { after: cursor } }),
+        });
+        if (resp.status === 401) {
+          const err = new Error('Invalid API key — please check your Linear personal API key.');
+          err.status = 401;
+          throw err;
+        }
+        if (!resp.ok) throw new Error(`Linear API error: ${resp.status} ${resp.statusText}`);
+        const json = await resp.json();
+        if (json.errors) throw new Error(json.errors[0].message);
+        const { nodes, pageInfo } = json.data.issues;
+        all.push(...nodes);
+        hasMore = pageInfo.hasNextPage;
+        cursor = pageInfo.endCursor;
+        if (hasMore) {
+          document.getElementById('loadingMsg').textContent = `Loading… (${all.length} issues so far)`;
         }
       }
-    });
+      return all;
+    }
 
-    // ── 1. Category grouped bar chart ──
-    new Chart(document.getElementById('categoryChart'), {
-      type: 'bar',
-      data: {
-        labels: ['Voice/Video', 'Brain', 'Just UI', 'Plumbing'],
-        datasets: [
-          {
-            label: 'Total',
-            data: [29, 54, 48, 23],
-            backgroundColor: [
-              'rgba(124,58,237,0.15)', 'rgba(13,148,136,0.15)',
-              'rgba(217,119,6,0.15)',  'rgba(225,29,72,0.15)',
-            ],
-            borderColor: [COLORS.video, COLORS.brain, COLORS.ui, COLORS.plumbing],
-            borderWidth: 1.5,
-            borderRadius: 4,
-          },
-          {
-            label: 'Open',
-            data: [20, 48, 30, 17],
-            backgroundColor: [
-              'rgba(124,58,237,0.4)', 'rgba(13,148,136,0.4)',
-              'rgba(217,119,6,0.4)',  'rgba(225,29,72,0.4)',
-            ],
-            borderColor: [COLORS.video, COLORS.brain, COLORS.ui, COLORS.plumbing],
-            borderWidth: 1.5,
-            borderRadius: 4,
-          },
-          {
-            label: 'Closed',
-            data: [9, 6, 18, 6],
-            backgroundColor: [COLORS.video, COLORS.brain, COLORS.ui, COLORS.plumbing],
-            borderRadius: 4,
-          },
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          datalabels: { display: false },
-          legend: { labels: { color: '#0F172A', font: { size: 13, family: 'Poppins' }, boxWidth: 14, padding: 16 } },
-          tooltip: tooltipDefaults,
-        },
-        scales: {
-          x: scaleDefaults,
-          y: { ...scaleDefaults, beginAtZero: true },
-        }
+    // ── Data Processing ──
+    function categorize(issue) {
+      const labels = issue.labels.nodes.map(l => l.name.toLowerCase());
+      if (labels.some(l => l.includes('voice') || l.includes('video'))) return 'video';
+      if (labels.some(l => l.includes('brain'))) return 'brain';
+      if (labels.some(l => l.includes('ui') || l.includes('ux'))) return 'ui';
+      return 'plumbing';
+    }
+
+    function isClosed(i) {
+      return i.state.type === 'completed' || i.state.type === 'canceled';
+    }
+
+    function isBug(i) {
+      return i.labels.nodes.some(l => l.name.toLowerCase() === 'bug');
+    }
+
+    function computeCategoryStats(issues) {
+      return CAT_KEYS.reduce((acc, cat) => {
+        const catIssues = issues.filter(i => categorize(i) === cat);
+        acc[cat] = {
+          total:  catIssues.length,
+          open:   catIssues.filter(i => !isClosed(i)).length,
+          closed: catIssues.filter(i => isClosed(i)).length,
+          bugs:   catIssues.filter(isBug).length,
+        };
+        return acc;
+      }, {});
+    }
+
+    function buildTimeSeries(issues) {
+      if (!issues.length) return [];
+      const startDate = new Date(Math.min(...issues.map(i => +new Date(i.createdAt))));
+      startDate.setHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+
+      const days = [];
+      for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
+        days.push(new Date(d));
       }
-    });
 
-    // ── 2. Bug donut ──
-    const bugTotal = 94;
-    new Chart(document.getElementById('bugChart'), {
-      type: 'doughnut',
-      data: {
-        labels: ['Voice/Video', 'Brain', 'Just UI', 'Plumbing'],
-        datasets: [{
-          data: [17, 46, 19, 12],
-          backgroundColor: [
-            'rgba(124,58,237,0.9)', 'rgba(13,148,136,0.9)',
-            'rgba(217,119,6,0.9)',  'rgba(225,29,72,0.9)',
-          ],
-          borderColor: '#FFFFFF',
-          borderWidth: 2,
-          hoverOffset: 6,
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        cutout: '55%',
-        plugins: {
-          datalabels: {
-            color: '#FFFFFF',
-            font: { size: 13, weight: 'bold', family: 'Poppins' },
-            formatter: (value) => `${Math.round(value / bugTotal * 100)}%`,
-            anchor: 'center',
-            align: 'center',
-          },
-          legend: {
-            position: 'right',
-            labels: {
-              color: '#0F172A', font: { size: 13, family: 'Poppins' }, boxWidth: 14, padding: 16,
-              generateLabels: (chart) => {
-                const data = chart.data;
-                const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
-                return data.labels.map((label, i) => ({
-                  text: `${label} (${data.datasets[0].data[i]})`,
-                  fillStyle: data.datasets[0].backgroundColor[i],
-                  strokeStyle: 'transparent',
-                  hidden: false,
-                  index: i,
-                }));
+      return days.map(day => {
+        const eod = new Date(day);
+        eod.setHours(23, 59, 59, 999);
+        const created = issues.filter(i => new Date(i.createdAt) <= eod);
+        const closed  = issues.filter(i => i.completedAt && new Date(i.completedAt) <= eod);
+        return {
+          label: day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          total:  created.length,
+          closed: closed.length,
+          byCategory: Object.fromEntries(CAT_KEYS.map(cat => [cat, {
+            total:  created.filter(i => categorize(i) === cat).length,
+            closed: closed.filter(i => categorize(i) === cat).length,
+          }])),
+        };
+      });
+    }
+
+    function computeWeeklyStats(issues) {
+      const weekStart = new Date();
+      const day = weekStart.getDay();
+      weekStart.setDate(weekStart.getDate() - (day === 0 ? 6 : day - 1));
+      weekStart.setHours(0, 0, 0, 0);
+      return {
+        newThisWeek:    issues.filter(i => new Date(i.createdAt) >= weekStart).length,
+        closedThisWeek: issues.filter(i => i.completedAt && new Date(i.completedAt) >= weekStart).length,
+      };
+    }
+
+    function processIssues(issues) {
+      const catStats    = computeCategoryStats(issues);
+      const timeSeries  = buildTimeSeries(issues);
+      const weekStats   = computeWeeklyStats(issues);
+      const totalClosed = issues.filter(isClosed).length;
+      const totalOpen   = issues.filter(i => !isClosed(i)).length;
+      const totalAll    = issues.length;
+      const totalBugs   = issues.filter(isBug).length;
+
+      // Net new per day
+      const netNew = timeSeries.map((ts, i) =>
+        i === 0 ? null : ts.total - timeSeries[i - 1].total
+      );
+
+      // % complete per cat per day
+      const pctComplete = Object.fromEntries(CAT_KEYS.map(cat => [
+        cat,
+        timeSeries.map(ts => {
+          const t = ts.byCategory[cat].total;
+          return t > 0 ? Math.round(ts.byCategory[cat].closed / t * 100) : 0;
+        })
+      ]));
+
+      return { catStats, timeSeries, weekStats, totalClosed, totalOpen, totalAll, totalBugs, netNew, pctComplete };
+    }
+
+    // ── DOM Updates ──
+    function updateStatCard(key, stats) {
+      const pct = stats.total > 0 ? Math.round(stats.closed / stats.total * 100) : 0;
+      document.getElementById(`${key}-total`).textContent  = stats.total;
+      document.getElementById(`${key}-open`).textContent   = stats.open;
+      document.getElementById(`${key}-closed`).textContent = stats.closed;
+      document.getElementById(`${key}-bar`).style.width    = `${pct}%`;
+      document.getElementById(`${key}-pct`).textContent    = `${pct}% complete`;
+    }
+
+    function updateDom(data) {
+      const { catStats, weekStats, totalClosed, totalOpen, totalAll, timeSeries } = data;
+
+      // Summary row
+      document.getElementById('sum-closed').textContent = weekStats.closedThisWeek;
+      document.getElementById('sum-new').textContent    = weekStats.newThisWeek;
+      document.getElementById('sum-open').textContent   = totalOpen;
+      const pctDone = totalAll > 0 ? Math.round(totalClosed / totalAll * 100) : 0;
+      document.getElementById('sum-pct').textContent    = `${pctDone}%`;
+
+      // Stat cards
+      CAT_KEYS.forEach(cat => updateStatCard(cat, catStats[cat]));
+
+      // Grand total
+      const grandPct = totalAll > 0 ? Math.round(totalClosed / totalAll * 100) : 0;
+      document.getElementById('grand-total').textContent  = totalAll;
+      document.getElementById('grand-open').textContent   = totalOpen;
+      document.getElementById('grand-closed').textContent = totalClosed;
+      document.getElementById('grand-bar').style.width    = `${grandPct}%`;
+      document.getElementById('grand-pct').textContent    = `${grandPct}% complete`;
+
+      // Bug total label
+      document.getElementById('bug-total-label').textContent = data.totalBugs;
+    }
+
+    // ── Chart Rendering ──
+    function destroyChart(id) {
+      if (chartInstances[id]) {
+        chartInstances[id].destroy();
+        delete chartInstances[id];
+      }
+    }
+
+    function renderCharts(data) {
+      const { catStats, timeSeries, netNew, pctComplete } = data;
+      const labels = timeSeries.map(d => d.label);
+
+      destroyChart('totalVsClosedChart');
+      destroyChart('categoryChart');
+      destroyChart('bugChart');
+      destroyChart('burnupChart');
+      destroyChart('cumulativeChart');
+
+      // ── 0. Total vs Closed by Category ──
+      const tvcDatasets = [];
+      CAT_KEYS.forEach((key) => {
+        const c = COLORS[key];
+        tvcDatasets.push({
+          label: `${CAT_NAMES[key]} — Total`,
+          data: timeSeries.map(d => d.byCategory[key].total),
+          borderColor: c,
+          backgroundColor: `${c}1e`,
+          fill: '+1',
+          tension: 0.3,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: c,
+          borderWidth: 2.5,
+        });
+        tvcDatasets.push({
+          label: `${CAT_NAMES[key]} — Closed`,
+          data: timeSeries.map(d => d.byCategory[key].closed),
+          borderColor: c,
+          backgroundColor: 'transparent',
+          fill: false,
+          tension: 0.3,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: c,
+          borderWidth: 1.5,
+          borderDash: [5, 4],
+        });
+      });
+
+      chartInstances['totalVsClosedChart'] = new Chart(document.getElementById('totalVsClosedChart'), {
+        type: 'line',
+        data: { labels, datasets: tvcDatasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            datalabels: { display: false },
+            legend: {
+              labels: {
+                color: '#0F172A', font: { size: 13, family: 'Poppins' }, boxWidth: 14, padding: 16,
+                filter: (item) => item.text.includes('Total'),
+                generateLabels: (chart) =>
+                  CAT_KEYS.map(key => ({
+                    text: CAT_NAMES[key],
+                    fillStyle: COLORS[key] + '30',
+                    strokeStyle: COLORS[key],
+                    lineWidth: 2,
+                    hidden: false,
+                  })),
+              }
+            },
+            tooltip: {
+              ...tooltipDefaults,
+              callbacks: {
+                label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y}`,
               }
             }
           },
-          tooltip: {
-            ...tooltipDefaults,
-            callbacks: {
-              label: (ctx) => {
-                const pct = Math.round(ctx.parsed / bugTotal * 100);
-                return `  ${ctx.parsed} bugs  (${pct}% of all bugs)`;
-              }
-            }
+          scales: {
+            x: scaleDefaults,
+            y: { ...scaleDefaults, beginAtZero: true },
           }
         }
-      }
-    });
+      });
 
-    // ── 3. Burn-up: net new bars + % complete lines ──
-    const days = ['Feb 18', 'Feb 19', 'Feb 20', 'Feb 21', 'Feb 22', 'Feb 23', 'Feb 24', 'Feb 25', 'Feb 26'];
-    const netNew  = [null, 21, 21, -3, 0, 18, 12, 9, 24]; // null so bar starts Feb 19
+      // ── 1. Category grouped bar chart ──
+      chartInstances['categoryChart'] = new Chart(document.getElementById('categoryChart'), {
+        type: 'bar',
+        data: {
+          labels: ['Voice/Video', 'Brain', 'Just UI', 'Plumbing'],
+          datasets: [
+            {
+              label: 'Total',
+              data: CAT_KEYS.map(k => catStats[k].total),
+              backgroundColor: [
+                'rgba(124,58,237,0.15)', 'rgba(13,148,136,0.15)',
+                'rgba(217,119,6,0.15)',  'rgba(225,29,72,0.15)',
+              ],
+              borderColor: [COLORS.video, COLORS.brain, COLORS.ui, COLORS.plumbing],
+              borderWidth: 1.5,
+              borderRadius: 4,
+            },
+            {
+              label: 'Open',
+              data: CAT_KEYS.map(k => catStats[k].open),
+              backgroundColor: [
+                'rgba(124,58,237,0.4)', 'rgba(13,148,136,0.4)',
+                'rgba(217,119,6,0.4)',  'rgba(225,29,72,0.4)',
+              ],
+              borderColor: [COLORS.video, COLORS.brain, COLORS.ui, COLORS.plumbing],
+              borderWidth: 1.5,
+              borderRadius: 4,
+            },
+            {
+              label: 'Closed',
+              data: CAT_KEYS.map(k => catStats[k].closed),
+              backgroundColor: [COLORS.video, COLORS.brain, COLORS.ui, COLORS.plumbing],
+              borderRadius: 4,
+            },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            datalabels: { display: false },
+            legend: { labels: { color: '#0F172A', font: { size: 13, family: 'Poppins' }, boxWidth: 14, padding: 16 } },
+            tooltip: tooltipDefaults,
+          },
+          scales: {
+            x: scaleDefaults,
+            y: { ...scaleDefaults, beginAtZero: true },
+          }
+        }
+      });
 
-    // % complete = cumClosed / cumCreated per day
-    const pctComplete = {
-      video:    [0,  14,  9, 18, 18, 10, 14, 17, 28],
-      brain:    [0,   0,  5,  9,  9, 12, 10, 13, 11],
-      ui:       [0,   0,  0, 13, 13, 14, 17, 29, 35],
-      plumbing: [0,   7, 26, 33, 33, 35, 32, 35, 36],
-    };
-
-    new Chart(document.getElementById('burnupChart'), {
-      type: 'bar',
-      data: {
-        labels: days,
-        datasets: [
-          // Net new bars (left axis)
-          {
-            type: 'bar',
-            label: 'Net New Tickets',
-            data: netNew,
-            backgroundColor: netNew.map(v => v > 0 ? 'rgba(248,113,113,0.35)' : v < 0 ? 'rgba(52,211,153,0.35)' : 'transparent'),
-            borderColor:     netNew.map(v => v > 0 ? '#f87171' : v < 0 ? '#34d399' : 'transparent'),
-            borderWidth: 1,
-            borderRadius: 4,
-            yAxisID: 'yBar',
-            order: 2,
-          },
-          // % complete lines (right axis)
-          {
-            type: 'line',
-            label: 'Voice/Video %',
-            data: pctComplete.video,
-            borderColor: COLORS.video,
-            backgroundColor: 'transparent',
-            tension: 0.35,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            pointBackgroundColor: COLORS.video,
+      // ── 2. Bug donut ──
+      const bugTotal = data.totalBugs;
+      chartInstances['bugChart'] = new Chart(document.getElementById('bugChart'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Voice/Video', 'Brain', 'Just UI', 'Plumbing'],
+          datasets: [{
+            data: CAT_KEYS.map(k => catStats[k].bugs),
+            backgroundColor: [
+              'rgba(124,58,237,0.9)', 'rgba(13,148,136,0.9)',
+              'rgba(217,119,6,0.9)',  'rgba(225,29,72,0.9)',
+            ],
+            borderColor: '#FFFFFF',
             borderWidth: 2,
-            yAxisID: 'yPct',
-            order: 1,
-          },
-          {
-            type: 'line',
-            label: 'Brain %',
-            data: pctComplete.brain,
-            borderColor: COLORS.brain,
-            backgroundColor: 'transparent',
-            tension: 0.35,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            pointBackgroundColor: COLORS.brain,
-            borderWidth: 2,
-            yAxisID: 'yPct',
-            order: 1,
-          },
-          {
-            type: 'line',
-            label: 'Just UI %',
-            data: pctComplete.ui,
-            borderColor: COLORS.ui,
-            backgroundColor: 'transparent',
-            tension: 0.35,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            pointBackgroundColor: COLORS.ui,
-            borderWidth: 2,
-            yAxisID: 'yPct',
-            order: 1,
-          },
-          {
-            type: 'line',
-            label: 'Plumbing %',
-            data: pctComplete.plumbing,
-            borderColor: COLORS.plumbing,
-            backgroundColor: 'transparent',
-            tension: 0.35,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            pointBackgroundColor: COLORS.plumbing,
-            borderWidth: 2,
-            yAxisID: 'yPct',
-            order: 1,
-          },
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          datalabels: { display: false },
-          legend: { labels: { color: '#64748b', font: { size: 11 }, boxWidth: 12, padding: 14 } },
-          tooltip: {
-            ...tooltipDefaults,
-            callbacks: {
-              label: (ctx) => {
-                if (ctx.dataset.label === 'Net New Tickets') {
-                  if (ctx.parsed.y === null) return null;
-                  const sign = ctx.parsed.y >= 0 ? '+' : '';
-                  return `  Net new: ${sign}${ctx.parsed.y} tickets`;
+            hoverOffset: 6,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          cutout: '55%',
+          plugins: {
+            datalabels: {
+              color: '#FFFFFF',
+              font: { size: 13, weight: 'bold', family: 'Poppins' },
+              formatter: (value) => bugTotal > 0 ? `${Math.round(value / bugTotal * 100)}%` : '0%',
+              anchor: 'center',
+              align: 'center',
+            },
+            legend: {
+              position: 'right',
+              labels: {
+                color: '#0F172A', font: { size: 13, family: 'Poppins' }, boxWidth: 14, padding: 16,
+                generateLabels: (chart) => {
+                  const d = chart.data;
+                  return d.labels.map((label, i) => ({
+                    text: `${label} (${d.datasets[0].data[i]})`,
+                    fillStyle: d.datasets[0].backgroundColor[i],
+                    strokeStyle: 'transparent',
+                    hidden: false,
+                    index: i,
+                  }));
                 }
-                return `  ${ctx.dataset.label}: ${ctx.parsed.y}%`;
+              }
+            },
+            tooltip: {
+              ...tooltipDefaults,
+              callbacks: {
+                label: (ctx) => {
+                  const pct = bugTotal > 0 ? Math.round(ctx.parsed / bugTotal * 100) : 0;
+                  return `  ${ctx.parsed} bugs  (${pct}% of all bugs)`;
+                }
               }
             }
           }
-        },
-        scales: {
-          x: scaleDefaults,
-          yBar: {
-            type: 'linear',
-            position: 'left',
-            ticks: { color: '#475569', font: { size: 11 } },
-            grid: { color: 'rgba(255,255,255,0.04)' },
-            title: { display: true, text: 'Net New Tickets', color: '#64748B', font: { size: 12, family: 'Poppins' } },
-          },
-          yPct: {
-            type: 'linear',
-            position: 'right',
-            min: 0,
-            max: 100,
-            ticks: { color: '#475569', font: { size: 11 }, callback: v => `${v}%` },
-            grid: { drawOnChartArea: false },
-            title: { display: true, text: '% Complete', color: '#64748B', font: { size: 12, family: 'Poppins' } },
-          },
         }
-      }
-    });
-    // ── 4. Cumulative burn-up ──
-    const cumDays = ['Feb 18', 'Feb 19', 'Feb 20', 'Feb 21', 'Feb 22', 'Feb 23', 'Feb 24', 'Feb 25', 'Feb 26'];
-    const cumScope  = [20, 43, 70, 73, 73, 94, 109, 128, 166]; // total tickets created
-    const cumClosed = [0,   2,  8, 14, 14,  17,  20,  30,  44]; // cumulative closed
+      });
 
-    new Chart(document.getElementById('cumulativeChart'), {
-      type: 'line',
-      data: {
-        labels: cumDays,
-        datasets: [
-          {
-            label: 'Total Scope',
-            data: cumScope,
-            borderColor: '#94a3b8',
-            backgroundColor: 'rgba(248,113,113,0.08)',
-            fill: '+1',   // fill down to closed line — the gap is "open"
-            tension: 0.3,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            pointBackgroundColor: '#94a3b8',
-            borderWidth: 2,
-          },
-          {
-            label: 'Closed',
-            data: cumClosed,
-            borderColor: '#34d399',
-            backgroundColor: 'rgba(52,211,153,0.08)',
-            fill: 'origin',
-            tension: 0.3,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            pointBackgroundColor: '#34d399',
-            borderWidth: 2,
-            borderDash: [5, 4],
-          },
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          datalabels: { display: false },
-          legend: { labels: { color: '#64748b', font: { size: 11 }, boxWidth: 12, padding: 14 } },
-          tooltip: {
-            ...tooltipDefaults,
-            callbacks: {
-              afterBody: (items) => {
-                const scope  = items.find(i => i.dataset.label === 'Total Scope')?.parsed.y ?? 0;
-                const closed = items.find(i => i.dataset.label === 'Closed')?.parsed.y ?? 0;
-                const open   = scope - closed;
-                const pct    = scope > 0 ? Math.round(closed / scope * 100) : 0;
-                return [``, `  Open: ${open}`, `  % Complete: ${pct}%`];
+      // ── 3. Burn-up: net new bars + % complete lines ──
+      chartInstances['burnupChart'] = new Chart(document.getElementById('burnupChart'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              type: 'bar',
+              label: 'Net New Tickets',
+              data: netNew,
+              backgroundColor: netNew.map(v => v === null ? 'transparent' : v > 0 ? 'rgba(248,113,113,0.35)' : v < 0 ? 'rgba(52,211,153,0.35)' : 'transparent'),
+              borderColor:     netNew.map(v => v === null ? 'transparent' : v > 0 ? '#f87171' : v < 0 ? '#34d399' : 'transparent'),
+              borderWidth: 1,
+              borderRadius: 4,
+              yAxisID: 'yBar',
+              order: 2,
+            },
+            {
+              type: 'line',
+              label: 'Voice/Video %',
+              data: pctComplete.video,
+              borderColor: COLORS.video,
+              backgroundColor: 'transparent',
+              tension: 0.35,
+              pointRadius: 3,
+              pointHoverRadius: 5,
+              pointBackgroundColor: COLORS.video,
+              borderWidth: 2,
+              yAxisID: 'yPct',
+              order: 1,
+            },
+            {
+              type: 'line',
+              label: 'Brain %',
+              data: pctComplete.brain,
+              borderColor: COLORS.brain,
+              backgroundColor: 'transparent',
+              tension: 0.35,
+              pointRadius: 3,
+              pointHoverRadius: 5,
+              pointBackgroundColor: COLORS.brain,
+              borderWidth: 2,
+              yAxisID: 'yPct',
+              order: 1,
+            },
+            {
+              type: 'line',
+              label: 'Just UI %',
+              data: pctComplete.ui,
+              borderColor: COLORS.ui,
+              backgroundColor: 'transparent',
+              tension: 0.35,
+              pointRadius: 3,
+              pointHoverRadius: 5,
+              pointBackgroundColor: COLORS.ui,
+              borderWidth: 2,
+              yAxisID: 'yPct',
+              order: 1,
+            },
+            {
+              type: 'line',
+              label: 'Plumbing %',
+              data: pctComplete.plumbing,
+              borderColor: COLORS.plumbing,
+              backgroundColor: 'transparent',
+              tension: 0.35,
+              pointRadius: 3,
+              pointHoverRadius: 5,
+              pointBackgroundColor: COLORS.plumbing,
+              borderWidth: 2,
+              yAxisID: 'yPct',
+              order: 1,
+            },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            datalabels: { display: false },
+            legend: { labels: { color: '#64748b', font: { size: 11 }, boxWidth: 12, padding: 14 } },
+            tooltip: {
+              ...tooltipDefaults,
+              callbacks: {
+                label: (ctx) => {
+                  if (ctx.dataset.label === 'Net New Tickets') {
+                    if (ctx.parsed.y === null) return null;
+                    const sign = ctx.parsed.y >= 0 ? '+' : '';
+                    return `  Net new: ${sign}${ctx.parsed.y} tickets`;
+                  }
+                  return `  ${ctx.dataset.label}: ${ctx.parsed.y}%`;
+                }
               }
             }
+          },
+          scales: {
+            x: scaleDefaults,
+            yBar: {
+              type: 'linear',
+              position: 'left',
+              ticks: { color: '#475569', font: { size: 11 } },
+              grid: { color: 'rgba(255,255,255,0.04)' },
+              title: { display: true, text: 'Net New Tickets', color: '#64748B', font: { size: 12, family: 'Poppins' } },
+            },
+            yPct: {
+              type: 'linear',
+              position: 'right',
+              min: 0,
+              max: 100,
+              ticks: { color: '#475569', font: { size: 11 }, callback: v => `${v}%` },
+              grid: { drawOnChartArea: false },
+              title: { display: true, text: '% Complete', color: '#64748B', font: { size: 12, family: 'Poppins' } },
+            },
           }
-        },
-        scales: {
-          x: scaleDefaults,
-          y: { ...scaleDefaults, beginAtZero: true },
         }
+      });
+
+      // ── 4. Cumulative burn-up ──
+      chartInstances['cumulativeChart'] = new Chart(document.getElementById('cumulativeChart'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Total Scope',
+              data: timeSeries.map(d => d.total),
+              borderColor: '#94a3b8',
+              backgroundColor: 'rgba(248,113,113,0.08)',
+              fill: '+1',
+              tension: 0.3,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointBackgroundColor: '#94a3b8',
+              borderWidth: 2,
+            },
+            {
+              label: 'Closed',
+              data: timeSeries.map(d => d.closed),
+              borderColor: '#34d399',
+              backgroundColor: 'rgba(52,211,153,0.08)',
+              fill: 'origin',
+              tension: 0.3,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointBackgroundColor: '#34d399',
+              borderWidth: 2,
+              borderDash: [5, 4],
+            },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            datalabels: { display: false },
+            legend: { labels: { color: '#64748b', font: { size: 11 }, boxWidth: 12, padding: 14 } },
+            tooltip: {
+              ...tooltipDefaults,
+              callbacks: {
+                afterBody: (items) => {
+                  const scope  = items.find(i => i.dataset.label === 'Total Scope')?.parsed.y ?? 0;
+                  const closed = items.find(i => i.dataset.label === 'Closed')?.parsed.y ?? 0;
+                  const open   = scope - closed;
+                  const pct    = scope > 0 ? Math.round(closed / scope * 100) : 0;
+                  return [``, `  Open: ${open}`, `  % Complete: ${pct}%`];
+                }
+              }
+            }
+          },
+          scales: {
+            x: scaleDefaults,
+            y: { ...scaleDefaults, beginAtZero: true },
+          }
+        }
+      });
+    }
+
+    // ── Main Flow ──
+    function renderDashboard(data) {
+      updateDom(data);
+      renderCharts(data);
+    }
+
+    async function init() {
+      hideError();
+      const apiKey = localStorage.getItem('linear_api_key');
+      if (!apiKey) { showModal(); return; }
+
+      showLoading('Loading data from Linear…');
+      try {
+        const issues = await fetchAllIssues(apiKey);
+        const data = processIssues(issues);
+        renderDashboard(data);
+        document.getElementById('lastUpdated').textContent =
+          'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      } catch (e) {
+        if (e.status === 401) {
+          localStorage.removeItem('linear_api_key');
+          showModal(e.message);
+        } else {
+          showError(e.message);
+        }
+      } finally {
+        hideLoading();
       }
-    });
+    }
+
+    async function refreshData() {
+      hideError();
+      const apiKey = localStorage.getItem('linear_api_key');
+      if (!apiKey) { showModal(); return; }
+
+      showLoading('Refreshing data from Linear…');
+      try {
+        const issues = await fetchAllIssues(apiKey);
+        const data = processIssues(issues);
+        renderDashboard(data);
+        document.getElementById('lastUpdated').textContent =
+          'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      } catch (e) {
+        if (e.status === 401) {
+          localStorage.removeItem('linear_api_key');
+          showModal(e.message);
+        } else {
+          showError(e.message);
+        }
+      } finally {
+        hideLoading();
+      }
+    }
+
+    window.addEventListener('load', init);
   </script>
 </body>
 </html>
