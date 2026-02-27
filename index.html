@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Multimodal GA Burndown</title>
+  <title>Multimodal GA Status</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script>/*!
  * Chart.js v4.5.1
@@ -209,6 +209,11 @@
       transition: border-color 0.15s, color 0.15s;
     }
     .filter-reset:hover { border-color: #E11D48; color: #E11D48; }
+    /* ── Section headings ── */
+    .section-heading {
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: #94A3B8; margin-bottom: 14px; margin-top: 4px;
+    }
     /* ── Status Update ── */
     .status-update {
       display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px;
@@ -264,12 +269,14 @@
   <div id="errorBanner"></div>
 
   <div class="page-header">
-    <h1>Multimodal GA Burndown</h1>
+    <h1>Multimodal GA Status</h1>
     <div class="header-controls">
       <span id="lastUpdated">Loading…</span>
       <button class="ctrl-btn" onclick="refreshData()">↻ Refresh</button>
     </div>
   </div>
+
+  <h2 class="section-heading">Upcoming and Recent Releases</h2>
 
   <!-- ── Status Update ── -->
   <div class="status-update" id="statusUpdate" style="display:none">
@@ -315,6 +322,8 @@
     </div>
     <button class="filter-reset" onclick="resetFilters()">✕ Reset filters</button>
   </div>
+
+  <h2 class="section-heading">Ticket Overview and Burndown</h2>
 
   <!-- ── Summary Row ── -->
   <div class="summary-row">
