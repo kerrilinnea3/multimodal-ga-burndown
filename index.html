@@ -272,7 +272,7 @@
     <h1>Multimodal GA Status</h1>
     <div class="header-controls">
       <span id="lastUpdated">Loading…</span>
-      <button class="ctrl-btn" onclick="refreshData()">↻ Refresh</button>
+      <span id="nextUpdate"></span>
     </div>
   </div>
 
@@ -1156,8 +1156,15 @@
 
     function formatFetchedAt(isoString) {
       const d = new Date(isoString);
-      return 'Data from ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      const next = new Date(d);
+      next.setMinutes(0, 0, 0);
+      next.setHours(next.getHours() + 1);
+
+      document.getElementById('lastUpdated').textContent =
+        'Updated ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
         + ' at ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('nextUpdate').textContent =
+        '· Next refresh ' + next.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
     async function init() {
@@ -1177,7 +1184,7 @@
         const data = processIssues(getFilteredIssues());
         renderDashboard(data);
         renderStatusUpdate(cachedIssues, cachedFetchedAt);
-        document.getElementById('lastUpdated').textContent = formatFetchedAt(fetchedAt);
+        formatFetchedAt(fetchedAt);
       } catch (e) {
         showError(e.message);
       } finally {
@@ -1196,7 +1203,7 @@
         const data = processIssues(getFilteredIssues());
         renderDashboard(data);
         renderStatusUpdate(cachedIssues, cachedFetchedAt);
-        document.getElementById('lastUpdated').textContent = formatFetchedAt(fetchedAt);
+        formatFetchedAt(fetchedAt);
       } catch (e) {
         showError(e.message);
       } finally {
