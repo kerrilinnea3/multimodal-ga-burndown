@@ -330,12 +330,12 @@
     <div class="summary-card">
       <div class="summary-card-label">Tickets Closed</div>
       <div class="summary-card-value" style="color:#0D9488" id="sum-closed">—</div>
-      <div class="summary-card-sub">this week</div>
+      <div class="summary-card-sub" id="sum-range-closed">last 7 days</div>
     </div>
     <div class="summary-card">
       <div class="summary-card-label">New Tickets Added</div>
       <div class="summary-card-value" style="color:#E11D48" id="sum-new">—</div>
-      <div class="summary-card-sub">this week</div>
+      <div class="summary-card-sub" id="sum-range-new">last 7 days</div>
     </div>
     <div class="summary-card">
       <div class="summary-card-label">Still Open</div>
@@ -579,21 +579,37 @@
       });
     }
 
-    function computeWeeklyStats(issues) {
-      const weekStart = new Date();
-      const day = weekStart.getDay();
-      weekStart.setDate(weekStart.getDate() - (day === 0 ? 6 : day - 1));
-      weekStart.setHours(0, 0, 0, 0);
+    function formatDateRange(fromVal, toVal) {
+      const fmt = s => new Date(s + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      if (fromVal && toVal) return `${fmt(fromVal)} – ${fmt(toVal)}`;
+      if (fromVal) return `from ${fmt(fromVal)}`;
+      if (toVal)   return `through ${fmt(toVal)}`;
+      return 'all time';
+    }
+
+    function computeRangeStats(allIssues) {
+      const fromVal = document.getElementById('createdFrom').value;
+      const toVal   = document.getElementById('createdTo').value;
+      const from = fromVal ? new Date(fromVal) : null;
+      const to   = toVal   ? new Date(toVal + 'T23:59:59') : null;
       return {
-        newThisWeek:    issues.filter(i => new Date(i.createdAt) >= weekStart).length,
-        closedThisWeek: issues.filter(i => i.completedAt && new Date(i.completedAt) >= weekStart).length,
+        newInRange:    allIssues.filter(i => {
+          const d = new Date(i.createdAt);
+          return (!from || d >= from) && (!to || d <= to);
+        }).length,
+        closedInRange: allIssues.filter(i => {
+          if (!i.completedAt) return false;
+          const d = new Date(i.completedAt);
+          return (!from || d >= from) && (!to || d <= to);
+        }).length,
+        label: formatDateRange(fromVal, toVal),
       };
     }
 
     function processIssues(issues) {
       const catStats    = computeCategoryStats(issues);
       const timeSeries  = buildTimeSeries(issues);
-      const weekStats   = computeWeeklyStats(issues);
+      const weekStats   = computeRangeStats(cachedIssues || issues);
       const totalClosed = issues.filter(isClosed).length;
       const totalOpen   = issues.filter(i => !isClosed(i)).length;
       const totalAll    = issues.length;
@@ -630,8 +646,10 @@
       const { catStats, weekStats, totalClosed, totalOpen, totalAll, timeSeries } = data;
 
       // Summary row
-      document.getElementById('sum-closed').textContent = weekStats.closedThisWeek;
-      document.getElementById('sum-new').textContent    = weekStats.newThisWeek;
+      document.getElementById('sum-closed').textContent      = weekStats.closedInRange;
+      document.getElementById('sum-new').textContent         = weekStats.newInRange;
+      document.getElementById('sum-range-closed').textContent = weekStats.label;
+      document.getElementById('sum-range-new').textContent    = weekStats.label;
       document.getElementById('sum-open').textContent   = totalOpen;
       const pctDone = totalAll > 0 ? Math.round(totalClosed / totalAll * 100) : 0;
       document.getElementById('sum-pct').textContent    = `${pctDone}%`;
@@ -1144,13 +1162,19 @@
 
     async function init() {
       hideError();
+      // Default created range: last 7 days
+      const today   = new Date();
+      const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      document.getElementById('createdFrom').value = weekAgo.toISOString().slice(0, 10);
+      document.getElementById('createdTo').value   = today.toISOString().slice(0, 10);
+
       showLoading('Loading data…');
       try {
         const { fetchedAt, issues } = await loadData();
         cachedIssues = issues;
         cachedFetchedAt = fetchedAt;
         document.getElementById('filterBar').style.display = 'flex';
-        const data = processIssues(cachedIssues);
+        const data = processIssues(getFilteredIssues());
         renderDashboard(data);
         renderStatusUpdate(cachedIssues, cachedFetchedAt);
         document.getElementById('lastUpdated').textContent = formatFetchedAt(fetchedAt);
