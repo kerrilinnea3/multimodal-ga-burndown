@@ -242,12 +242,23 @@
     }
     /* ── Status Update ── */
     .status-update {
-      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px;
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;
     }
-    .status-col {
-      background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px;
-      padding: 16px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    .cat-status-section {
+      background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px;
+      overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     }
+    .cat-status-heading {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; padding: 11px 16px;
+      border-bottom: 2px solid currentColor;
+    }
+    .cat-status-group {
+      padding: 10px 16px 8px;
+      border-bottom: 1px solid #F1F5F9;
+    }
+    .cat-status-group:last-child { border-bottom: none; }
+    .cat-status-group .status-header { margin-bottom: 8px; padding-bottom: 0; border-bottom: none; }
     .status-header {
       display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
       padding-bottom: 10px; border-bottom: 1px solid #F1F5F9;
@@ -314,32 +325,7 @@
   </div>
 
   <!-- ── Status Update ── -->
-  <div class="status-update" id="statusUpdate" style="display:none">
-    <div class="status-col">
-      <div class="status-header">
-        <span class="status-dot yellow"></span>
-        <strong>In Progress / Review</strong>
-        <span class="status-count" id="su-active-count">0</span>
-      </div>
-      <ul class="status-list" id="su-active-list"></ul>
-    </div>
-    <div class="status-col">
-      <div class="status-header">
-        <span class="status-dot purple"></span>
-        <strong>Released to Dev <span class="status-window">/ in QA</span></strong>
-        <span class="status-count" id="su-merged-count">0</span>
-      </div>
-      <ul class="status-list" id="su-merged-list"></ul>
-    </div>
-    <div class="status-col">
-      <div class="status-header">
-        <span class="status-dot green"></span>
-        <strong>Released to Production</strong>
-        <span class="status-count" id="su-done-count">0</span>
-      </div>
-      <ul class="status-list" id="su-done-list"></ul>
-    </div>
-  </div>
+  <div class="status-update" id="statusUpdate" style="display:none"></div>
 
   <h2 class="section-heading">Ticket Overview and Burndown</h2>
 
@@ -1093,63 +1079,85 @@
     }
 
     function renderStatusUpdate(issues, fetchedAt) {
-      const comms = issues.filter(i => hasCommsLabel(i) || categorize(i) === 'plumbing');
+      const relevant = issues.filter(i => hasCommsLabel(i) || categorize(i) === 'plumbing');
+      const container = document.getElementById('statusUpdate');
+      container.innerHTML = '';
 
-      const active = comms
-        .filter(i => ['In Progress', 'Under Review', 'UAT'].includes(i.state.name))
-        .sort((a, b) => {
-          const order = { 'In Progress': 0, 'UAT': 1, 'Under Review': 2 };
-          return (order[a.state.name] ?? 9) - (order[b.state.name] ?? 9);
+      const STATUS_GROUPS = [
+        {
+          dot: 'green',  label: 'Released to Production',
+          filter: items => items.filter(i => i.state.name === 'Done')
+            .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)),
+        },
+        {
+          dot: 'purple', label: 'Released to Dev / QA',
+          filter: items => items.filter(i => i.state.name === 'Merged')
+            .sort((a, b) => a.title.localeCompare(b.title)),
+        },
+        {
+          dot: 'yellow', label: 'In Progress',
+          filter: items => items.filter(i => ['In Progress', 'Under Review', 'UAT'].includes(i.state.name))
+            .sort((a, b) => {
+              const order = { 'In Progress': 0, 'UAT': 1, 'Under Review': 2 };
+              return (order[a.state.name] ?? 9) - (order[b.state.name] ?? 9);
+            }),
+        },
+      ];
+
+      CAT_KEYS.forEach(cat => {
+        const catIssues = relevant.filter(i => categorize(i) === cat);
+        const color = COLORS[cat];
+
+        const section = document.createElement('div');
+        section.className = 'cat-status-section';
+        section.dataset.cat = cat;
+
+        const heading = document.createElement('div');
+        heading.className = 'cat-status-heading';
+        heading.style.color = color;
+        heading.style.borderBottomColor = color;
+        heading.textContent = CAT_NAMES[cat];
+        section.appendChild(heading);
+
+        STATUS_GROUPS.forEach(group => {
+          const items = group.filter(catIssues);
+          const grp = document.createElement('div');
+          grp.className = 'cat-status-group';
+
+          const hdr = document.createElement('div');
+          hdr.className = 'status-header';
+          hdr.innerHTML =
+            `<span class="status-dot ${group.dot}"></span>` +
+            `<strong>${group.label}</strong>` +
+            `<span class="status-count">${items.length}</span>`;
+          grp.appendChild(hdr);
+
+          const ul = document.createElement('ul');
+          ul.className = 'status-list';
+          if (!items.length) {
+            ul.innerHTML = '<li class="status-empty">—</li>';
+          } else {
+            items.forEach(issue => {
+              const li = document.createElement('li');
+              li.className = 'status-item';
+              li.dataset.cat = cat;
+              const url = issue.url || '#';
+              li.innerHTML =
+                `<a href="${url}" target="_blank" rel="noopener" ` +
+                `style="color:inherit;text-decoration:none;border-bottom:1px solid #CBD5E1" ` +
+                `onmouseover="this.style.borderBottomColor='${color}';this.style.color='${color}'" ` +
+                `onmouseout="this.style.borderBottomColor='#CBD5E1';this.style.color='inherit'">${issue.title}</a>`;
+              ul.appendChild(li);
+            });
+          }
+          grp.appendChild(ul);
+          section.appendChild(grp);
         });
 
-      const merged = comms
-        .filter(i => i.state.name === 'Merged')
-        .sort((a, b) => a.title.localeCompare(b.title));
+        container.appendChild(section);
+      });
 
-      const done = comms
-        .filter(i => i.state.name === 'Done')
-        .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
-
-      function makeList(listEl, countEl, items) {
-        countEl.textContent = items.length;
-        listEl.innerHTML = '';
-        if (!items.length) {
-          listEl.innerHTML = '<li class="status-empty">Nothing yet</li>';
-          return;
-        }
-        items.forEach(issue => {
-          const cat = categorize(issue);
-          const col = CAT_COLORS[cat];
-          const li = document.createElement('li');
-          li.className = 'status-item';
-          li.dataset.cat = cat;
-          const url = issue.url || '#';
-          li.innerHTML =
-            `<span class="status-cat" style="background:${col.bg};color:${col.text}">${CAT_NAMES[cat]}</span>` +
-            `<a href="${url}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px solid #CBD5E1" ` +
-            `onmouseover="this.style.borderBottomColor='#7C3AED';this.style.color='#7C3AED'" ` +
-            `onmouseout="this.style.borderBottomColor='#CBD5E1';this.style.color='inherit'">${issue.title}</a>`;
-          listEl.appendChild(li);
-        });
-      }
-
-      makeList(
-        document.getElementById('su-done-list'),
-        document.getElementById('su-done-count'),
-        done
-      );
-      makeList(
-        document.getElementById('su-merged-list'),
-        document.getElementById('su-merged-count'),
-        merged
-      );
-      makeList(
-        document.getElementById('su-active-list'),
-        document.getElementById('su-active-count'),
-        active
-      );
-
-      document.getElementById('statusUpdate').style.display = 'grid';
+      container.style.display = 'grid';
     }
 
     // ── Filters ──
@@ -1190,35 +1198,18 @@
       applyFilters();
     }
 
-    function getActiveCats() {
-      return new Set([...document.querySelectorAll('#statusCatFilter .cat-filter-btn.active')].map(b => b.dataset.cat));
-    }
-
-    function applyStatusCatFilter() {
-      const activeCats = getActiveCats();
-      ['su-active-list', 'su-merged-list', 'su-done-list'].forEach(listId => {
-        const list = document.getElementById(listId);
-        if (!list) return;
-        let visible = 0;
-        list.querySelectorAll('li[data-cat]').forEach(li => {
-          const show = activeCats.has(li.dataset.cat);
-          li.style.display = show ? '' : 'none';
-          if (show) visible++;
-        });
-        const countId = listId.replace('-list', '-count');
-        const countEl = document.getElementById(countId);
-        if (countEl) countEl.textContent = visible;
-      });
-    }
-
     function toggleStatusCat(cat, btn) {
       btn.classList.toggle('active');
-      applyStatusCatFilter();
+      const section = document.querySelector(`.cat-status-section[data-cat="${cat}"]`);
+      if (section) section.style.display = btn.classList.contains('active') ? '' : 'none';
     }
 
     function resetStatusCats() {
-      document.querySelectorAll('#statusCatFilter .cat-filter-btn').forEach(b => b.classList.add('active'));
-      applyStatusCatFilter();
+      document.querySelectorAll('#statusCatFilter .cat-filter-btn').forEach(b => {
+        b.classList.add('active');
+        const section = document.querySelector(`.cat-status-section[data-cat="${b.dataset.cat}"]`);
+        if (section) section.style.display = '';
+      });
     }
 
     function formatFetchedAt(isoString) {
