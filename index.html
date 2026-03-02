@@ -1093,7 +1093,7 @@
     }
 
     function renderStatusUpdate(issues, fetchedAt) {
-      const comms = issues.filter(hasCommsLabel);
+      const comms = issues.filter(i => hasCommsLabel(i) || categorize(i) === 'plumbing');
 
       const active = comms
         .filter(i => ['In Progress', 'Under Review', 'UAT'].includes(i.state.name))
