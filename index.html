@@ -209,6 +209,32 @@
       transition: border-color 0.15s, color 0.15s;
     }
     .filter-reset:hover { border-color: #E11D48; color: #E11D48; }
+    /* ── Category filter toggles ── */
+    .cat-filter-bar {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .cat-filter-label {
+      font-size: 12px; font-weight: 600; color: #64748B;
+      text-transform: uppercase; letter-spacing: 0.06em; margin-right: 4px;
+    }
+    .cat-filter-btn {
+      background: none; border: 1.5px solid var(--cat-color);
+      border-radius: 20px; padding: 4px 14px;
+      font-size: 12px; font-family: 'Poppins', sans-serif;
+      color: var(--cat-color); cursor: pointer;
+      transition: background 0.15s, color 0.15s, opacity 0.15s;
+      opacity: 0.45;
+    }
+    .cat-filter-btn.active { background: var(--cat-color); color: #fff; opacity: 1; }
+    .cat-filter-all {
+      background: none; border: 1.5px solid #CBD5E1;
+      border-radius: 20px; padding: 4px 14px;
+      font-size: 12px; font-family: 'Poppins', sans-serif;
+      color: #475569; cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .cat-filter-all:hover { border-color: #7C3AED; color: #7C3AED; }
     /* ── Section headings ── */
     .section-heading {
       font-size: 15px; font-weight: 700; text-transform: uppercase;
@@ -349,10 +375,20 @@
     </div>
   </div>
 
+  <!-- ── Category Filter ── -->
+  <div class="cat-filter-bar">
+    <span class="cat-filter-label">Show:</span>
+    <button class="cat-filter-btn active" data-cat="video" style="--cat-color:#7C3AED" onclick="toggleCatFilter('video',this)">Voice / Video</button>
+    <button class="cat-filter-btn active" data-cat="brain" style="--cat-color:#0D9488" onclick="toggleCatFilter('brain',this)">Brain</button>
+    <button class="cat-filter-btn active" data-cat="ui"    style="--cat-color:#D97706" onclick="toggleCatFilter('ui',this)">Just UX</button>
+    <button class="cat-filter-btn active" data-cat="plumbing" style="--cat-color:#E11D48" onclick="toggleCatFilter('plumbing',this)">Plumbing</button>
+    <button class="cat-filter-all" onclick="resetCatFilters()">Show All</button>
+  </div>
+
   <!-- ── Stat Cards ── -->
   <div class="stat-cards">
     <!-- Voice/Video -->
-    <div class="stat-card">
+    <div class="stat-card" data-cat="video">
       <div class="stat-card-label c-video">Voice / Video</div>
       <div class="stat-card-row"><span>Total</span><span id="video-total">—</span></div>
       <div class="stat-card-row"><span>Open</span><span id="video-open">—</span></div>
@@ -361,7 +397,7 @@
       <div class="stat-card-pct c-video" id="video-pct">—% complete</div>
     </div>
     <!-- Brain -->
-    <div class="stat-card">
+    <div class="stat-card" data-cat="brain">
       <div class="stat-card-label c-brain">Brain</div>
       <div class="stat-card-row"><span>Total</span><span id="brain-total">—</span></div>
       <div class="stat-card-row"><span>Open</span><span id="brain-open">—</span></div>
@@ -370,7 +406,7 @@
       <div class="stat-card-pct c-brain" id="brain-pct">—% complete</div>
     </div>
     <!-- Just UI -->
-    <div class="stat-card">
+    <div class="stat-card" data-cat="ui">
       <div class="stat-card-label c-ui">Just UI</div>
       <div class="stat-card-row"><span>Total</span><span id="ui-total">—</span></div>
       <div class="stat-card-row"><span>Open</span><span id="ui-open">—</span></div>
@@ -379,7 +415,7 @@
       <div class="stat-card-pct c-ui" id="ui-pct">—% complete</div>
     </div>
     <!-- Plumbing -->
-    <div class="stat-card">
+    <div class="stat-card" data-cat="plumbing">
       <div class="stat-card-label c-plumbing">Plumbing / Other</div>
       <div class="stat-card-row"><span>Total</span><span id="plumbing-total">—</span></div>
       <div class="stat-card-row"><span>Open</span><span id="plumbing-open">—</span></div>
@@ -1152,6 +1188,20 @@
         document.getElementById(id).value = '';
       });
       applyFilters();
+    }
+
+    function toggleCatFilter(cat, btn) {
+      btn.classList.toggle('active');
+      const card = document.querySelector(`.stat-card[data-cat="${cat}"]`);
+      if (card) card.style.display = btn.classList.contains('active') ? '' : 'none';
+    }
+
+    function resetCatFilters() {
+      document.querySelectorAll('.cat-filter-btn').forEach(btn => {
+        btn.classList.add('active');
+        const card = document.querySelector(`.stat-card[data-cat="${btn.dataset.cat}"]`);
+        if (card) card.style.display = '';
+      });
     }
 
     function formatFetchedAt(isoString) {
