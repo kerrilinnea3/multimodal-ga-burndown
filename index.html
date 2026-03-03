@@ -792,10 +792,7 @@
             {
               label: 'Total',
               data: CAT_KEYS.map(k => catStats[k].total),
-              backgroundColor: [
-                'rgba(124,58,237,0.15)', 'rgba(13,148,136,0.15)',
-                'rgba(217,119,6,0.15)',  'rgba(225,29,72,0.15)',
-              ],
+              backgroundColor: CAT_KEYS.map(k => COLORS[k] + '26'),
               borderColor: [COLORS.video, COLORS.brain, COLORS.ui, COLORS.plumbing],
               borderWidth: 1.5,
               borderRadius: 4,
@@ -803,10 +800,7 @@
             {
               label: 'Open',
               data: CAT_KEYS.map(k => catStats[k].open),
-              backgroundColor: [
-                'rgba(124,58,237,0.4)', 'rgba(13,148,136,0.4)',
-                'rgba(217,119,6,0.4)',  'rgba(225,29,72,0.4)',
-              ],
+              backgroundColor: CAT_KEYS.map(k => COLORS[k] + '66'),
               borderColor: [COLORS.video, COLORS.brain, COLORS.ui, COLORS.plumbing],
               borderWidth: 1.5,
               borderRadius: 4,
@@ -842,10 +836,7 @@
           labels: ['Voice/Video', 'Brain', 'Just UI', 'Plumbing'],
           datasets: [{
             data: CAT_KEYS.map(k => catStats[k].bugs),
-            backgroundColor: [
-              'rgba(124,58,237,0.9)', 'rgba(13,148,136,0.9)',
-              'rgba(217,119,6,0.9)',  'rgba(225,29,72,0.9)',
-            ],
+            backgroundColor: CAT_KEYS.map(k => COLORS[k] + 'E6'),
             borderColor: '#FFFFFF',
             borderWidth: 2,
             hoverOffset: 6,
