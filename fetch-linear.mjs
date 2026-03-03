@@ -21,6 +21,7 @@ const QUERY = `
         state { name type }
         labels(first: 10) { nodes { name } }
         createdAt
+        updatedAt
         completedAt
       }
     }

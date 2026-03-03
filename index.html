@@ -1106,14 +1106,14 @@
         {
           dot: 'green',  label: 'Released to Production',
           filter: items => items
-            .filter(i => i.state.name === 'Done' && (!sinceDate || (i.completedAt && new Date(i.completedAt) >= sinceDate)))
-            .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)),
+            .filter(i => i.state.name === 'Done' && (!sinceDate || new Date(i.completedAt || i.updatedAt) >= sinceDate))
+            .sort((a, b) => new Date(b.completedAt || b.updatedAt) - new Date(a.completedAt || a.updatedAt)),
         },
         {
           dot: 'purple', label: 'Released to Dev / QA',
           filter: items => items
-            .filter(i => i.state.name === 'Merged' && (!sinceDate || (i.completedAt && new Date(i.completedAt) >= sinceDate)))
-            .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)),
+            .filter(i => i.state.name === 'Merged' && (!sinceDate || new Date(i.completedAt || i.updatedAt) >= sinceDate))
+            .sort((a, b) => new Date(b.completedAt || b.updatedAt) - new Date(a.completedAt || a.updatedAt)),
         },
         {
           dot: 'yellow', label: 'In Progress',
