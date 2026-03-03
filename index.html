@@ -252,6 +252,17 @@
       font-size: 12px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.08em; padding: 11px 16px;
       border-bottom: 2px solid currentColor;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .cat-status-health {
+      display: flex; gap: 14px; text-transform: none; letter-spacing: 0;
+    }
+    .cat-status-health-item {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 14px; font-weight: 600; opacity: 0.9;
+    }
+    .cat-status-health-label {
+      font-size: 10px; font-weight: 500; opacity: 0.7;
     }
     .cat-status-group {
       padding: 10px 16px 8px;
@@ -270,15 +281,6 @@
     .status-dot.purple { background: #7C3AED; }
     .status-dot.yellow { background: #F59E0B; }
     .status-dot.red    { background: #EF4444; }
-    .health-indicators {
-      display: flex; gap: 12px; padding: 8px 16px 10px;
-      border-bottom: 1px solid #F1F5F9;
-    }
-    .health-item {
-      display: flex; align-items: center; gap: 5px;
-      font-size: 11px; color: #64748B;
-    }
-    .health-item strong { color: #0F172A; font-weight: 600; }
     .status-header strong { font-size: 13px; font-weight: 600; color: #0F172A; flex: 1; }
     .status-header .status-window { font-weight: 400; color: #94A3B8; font-size: 11px; }
     .status-count {
@@ -1130,15 +1132,13 @@
         heading.className = 'cat-status-heading';
         heading.style.color = color;
         heading.style.borderBottomColor = color;
-        heading.textContent = CAT_NAMES[cat];
+        heading.innerHTML =
+          `<span>${CAT_NAMES[cat]}</span>` +
+          `<span class="cat-status-health">` +
+            `<span class="cat-status-health-item"><span class="status-dot ${healthDot(basePct)}"></span><span class="cat-status-health-label">Baseline</span> ${basePct}%</span>` +
+            `<span class="cat-status-health-item"><span class="status-dot ${healthDot(implPct)}"></span><span class="cat-status-health-label">Impl</span> ${implPct}%</span>` +
+          `</span>`;
         section.appendChild(heading);
-
-        const health = document.createElement('div');
-        health.className = 'health-indicators';
-        health.innerHTML =
-          `<span class="health-item"><span class="status-dot ${healthDot(basePct)}"></span>Baseline <strong>${basePct}%</strong></span>` +
-          `<span class="health-item"><span class="status-dot ${healthDot(implPct)}"></span>Implementation <strong>${implPct}%</strong></span>`;
-        section.appendChild(health);
 
         STATUS_GROUPS.forEach(group => {
           const items = group.filter(catIssues);
