@@ -118,10 +118,10 @@
     .chart-wrap { position: relative; }
 
     /* color tokens */
-    .c-video    { color: #7C3AED; }
-    .c-brain    { color: #0D9488; }
-    .c-ui       { color: #D97706; }
-    .c-plumbing { color: #E11D48; }
+    .c-video    { color: #2563EB; }
+    .c-brain    { color: #EC4899; }
+    .c-ui       { color: #7C3AED; }
+    .c-plumbing { color: #CA8A04; }
     .c-grand    { color: #475569; }
 
     /* ── summary row ── */
@@ -264,6 +264,10 @@
     .cat-status-health-label {
       font-size: 10px; font-weight: 500; opacity: 0.7;
     }
+    .cat-theme-summary {
+      padding: 7px 16px 8px; font-size: 11px; color: #64748B;
+      border-bottom: 1px solid #F1F5F9; font-style: italic;
+    }
     .cat-status-group {
       padding: 10px 16px 8px;
       border-bottom: 1px solid #F1F5F9;
@@ -382,7 +386,7 @@
       <div class="stat-card-row"><span>Total</span><span id="video-total">—</span></div>
       <div class="stat-card-row"><span>Open</span><span id="video-open">—</span></div>
       <div class="stat-card-row"><span>Closed</span><span id="video-closed">—</span></div>
-      <div class="stat-card-progress"><div class="stat-card-progress-bar" id="video-bar" style="width:0%;background:#7C3AED"></div></div>
+      <div class="stat-card-progress"><div class="stat-card-progress-bar" id="video-bar" style="width:0%;background:#2563EB"></div></div>
       <div class="stat-card-pct c-video" id="video-pct">—% complete</div>
     </div>
     <!-- Brain -->
@@ -391,7 +395,7 @@
       <div class="stat-card-row"><span>Total</span><span id="brain-total">—</span></div>
       <div class="stat-card-row"><span>Open</span><span id="brain-open">—</span></div>
       <div class="stat-card-row"><span>Closed</span><span id="brain-closed">—</span></div>
-      <div class="stat-card-progress"><div class="stat-card-progress-bar" id="brain-bar" style="width:0%;background:#0D9488"></div></div>
+      <div class="stat-card-progress"><div class="stat-card-progress-bar" id="brain-bar" style="width:0%;background:#EC4899"></div></div>
       <div class="stat-card-pct c-brain" id="brain-pct">—% complete</div>
     </div>
     <!-- Just UI -->
@@ -400,7 +404,7 @@
       <div class="stat-card-row"><span>Total</span><span id="ui-total">—</span></div>
       <div class="stat-card-row"><span>Open</span><span id="ui-open">—</span></div>
       <div class="stat-card-row"><span>Closed</span><span id="ui-closed">—</span></div>
-      <div class="stat-card-progress"><div class="stat-card-progress-bar" id="ui-bar" style="width:0%;background:#D97706"></div></div>
+      <div class="stat-card-progress"><div class="stat-card-progress-bar" id="ui-bar" style="width:0%;background:#7C3AED"></div></div>
       <div class="stat-card-pct c-ui" id="ui-pct">—% complete</div>
     </div>
     <!-- Plumbing -->
@@ -409,7 +413,7 @@
       <div class="stat-card-row"><span>Total</span><span id="plumbing-total">—</span></div>
       <div class="stat-card-row"><span>Open</span><span id="plumbing-open">—</span></div>
       <div class="stat-card-row"><span>Closed</span><span id="plumbing-closed">—</span></div>
-      <div class="stat-card-progress"><div class="stat-card-progress-bar" id="plumbing-bar" style="width:0%;background:#E11D48"></div></div>
+      <div class="stat-card-progress"><div class="stat-card-progress-bar" id="plumbing-bar" style="width:0%;background:#CA8A04"></div></div>
       <div class="stat-card-pct c-plumbing" id="plumbing-pct">—% complete</div>
     </div>
     <!-- Grand Total -->
@@ -488,10 +492,10 @@
 
     // ── Constants ──
     const COLORS = {
-      video:    '#7C3AED',
-      brain:    '#0D9488',
-      ui:       '#D97706',
-      plumbing: '#E11D48',
+      video:    '#2563EB',
+      brain:    '#EC4899',
+      ui:       '#7C3AED',
+      plumbing: '#CA8A04',
     };
     const CAT_NAMES = { video: 'Voice/Video', brain: 'Brain', ui: 'Just UI', plumbing: 'Plumbing' };
     const CAT_KEYS  = ['video', 'brain', 'ui', 'plumbing'];
@@ -1114,8 +1118,27 @@
         return 'red';
       }
 
+      const STOPWORDS = new Set(['a','an','the','to','for','of','in','on','with','and','or','is','be','by','as','at','from','up','add','fix','update','remove','refactor','feat','chore','revert','enable','disable','support','use','via','per','into','that','this','it','its','not','no','new','old','all','any','when','where','get','set','make','allow','move','show','hide','more','less','other','some','one','two','three','change','changes','create','delete','implement','improve','after','before','during','should','will','can','also','have','has','been','was','were','are','had']);
+
+      function extractThemes(items) {
+        const freq = {};
+        items.forEach(issue => {
+          issue.title.toLowerCase()
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .split(/\s+/)
+            .filter(w => w.length > 3 && !STOPWORDS.has(w))
+            .forEach(w => { freq[w] = (freq[w] || 0) + 1; });
+        });
+        return Object.entries(freq)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 4)
+          .map(([w]) => w);
+      }
+
       CAT_KEYS.forEach(cat => {
-        const catIssues = relevant.filter(i => categorize(i) === cat);
+        const catIssues = cat === 'plumbing'
+          ? relevant.filter(i => categorize(i) === 'plumbing' || hasCommsLabel(i))
+          : relevant.filter(i => categorize(i) === cat);
         const color = COLORS[cat];
 
         // Health: computed from ALL issues in category (not just relevant)
@@ -1139,6 +1162,15 @@
             `<span class="cat-status-health-item"><span class="status-dot ${healthDot(implPct)}"></span><span class="cat-status-health-label">Impl</span> ${implPct}%</span>` +
           `</span>`;
         section.appendChild(heading);
+
+        const releasedItems = catIssues.filter(i => i.state.name === 'Done' || i.state.name === 'Merged');
+        const themes = extractThemes(releasedItems);
+        const themeSummary = document.createElement('div');
+        themeSummary.className = 'cat-theme-summary';
+        themeSummary.textContent = themes.length
+          ? 'Recent themes: ' + themes.join(' · ')
+          : 'No recently released tickets.';
+        section.appendChild(themeSummary);
 
         STATUS_GROUPS.forEach(group => {
           const items = group.filter(catIssues);
