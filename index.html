@@ -44,7 +44,7 @@
     /* ── category stat cards ── */
     .stat-cards {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 16px;
       margin-bottom: 28px;
     }
@@ -242,7 +242,7 @@
     }
     /* ── Status Update ── */
     .status-update {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;
     }
     .cat-status-section {
       background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px;
@@ -269,6 +269,16 @@
     .status-dot.green  { background: #22C55E; }
     .status-dot.purple { background: #7C3AED; }
     .status-dot.yellow { background: #F59E0B; }
+    .status-dot.red    { background: #EF4444; }
+    .health-indicators {
+      display: flex; gap: 12px; padding: 8px 16px 10px;
+      border-bottom: 1px solid #F1F5F9;
+    }
+    .health-item {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 11px; color: #64748B;
+    }
+    .health-item strong { color: #0F172A; font-weight: 600; }
     .status-header strong { font-size: 13px; font-weight: 600; color: #0F172A; flex: 1; }
     .status-header .status-window { font-weight: 400; color: #94A3B8; font-size: 11px; }
     .status-count {
@@ -401,7 +411,7 @@
       <div class="stat-card-pct c-plumbing" id="plumbing-pct">—% complete</div>
     </div>
     <!-- Grand Total -->
-    <div class="stat-card grand" style="grid-column: span 2;">
+    <div class="stat-card grand">
       <div class="stat-card-label c-grand">Grand Total</div>
       <div class="stat-card-row"><span>Total</span><span id="grand-total">—</span></div>
       <div class="stat-card-row"><span>Open</span><span id="grand-open">—</span></div>
@@ -1096,9 +1106,21 @@
         },
       ];
 
+      function healthDot(pct) {
+        if (pct >= 75) return 'green';
+        if (pct >= 40) return 'yellow';
+        return 'red';
+      }
+
       CAT_KEYS.forEach(cat => {
         const catIssues = relevant.filter(i => categorize(i) === cat);
         const color = COLORS[cat];
+
+        // Health: computed from ALL issues in category (not just relevant)
+        const allCat  = issues.filter(i => categorize(i) === cat);
+        const basePct = allCat.length ? Math.round(allCat.filter(isClosed).length / allCat.length * 100) : 0;
+        const bugsCat = allCat.filter(isBug);
+        const implPct = bugsCat.length ? Math.round(bugsCat.filter(isClosed).length / bugsCat.length * 100) : 0;
 
         const section = document.createElement('div');
         section.className = 'cat-status-section';
@@ -1110,6 +1132,13 @@
         heading.style.borderBottomColor = color;
         heading.textContent = CAT_NAMES[cat];
         section.appendChild(heading);
+
+        const health = document.createElement('div');
+        health.className = 'health-indicators';
+        health.innerHTML =
+          `<span class="health-item"><span class="status-dot ${healthDot(basePct)}"></span>Baseline <strong>${basePct}%</strong></span>` +
+          `<span class="health-item"><span class="status-dot ${healthDot(implPct)}"></span>Implementation <strong>${implPct}%</strong></span>`;
+        section.appendChild(health);
 
         STATUS_GROUPS.forEach(group => {
           const items = group.filter(catIssues);
