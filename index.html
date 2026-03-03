@@ -1098,7 +1098,7 @@
       const sinceVal = document.getElementById('releaseSince').value;
       const sinceDate = sinceVal ? new Date(sinceVal) : null;
 
-      const relevant = issues.filter(i => hasCommsLabel(i) || hasPlumbingLabel(i) || categorize(i) !== 'plumbing');
+      const relevant = issues.filter(i => hasCommsLabel(i));
       const container = document.getElementById('statusUpdate');
       container.innerHTML = '';
 
@@ -1133,7 +1133,7 @@
 
       CAT_KEYS.forEach(cat => {
         const catIssues = cat === 'plumbing'
-          ? issues.filter(i => hasPlumbingLabel(i) || hasCommsLabel(i))
+          ? relevant.filter(i => hasPlumbingLabel(i))
           : relevant.filter(i => categorize(i) === cat);
         const color = COLORS[cat];
 
