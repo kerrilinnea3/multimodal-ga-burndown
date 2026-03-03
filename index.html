@@ -1091,7 +1091,7 @@
     }
 
     function hasPlumbingLabel(issue) {
-      return issue.labels.nodes.some(l => l.name.toLowerCase().includes('plumbing'));
+      return issue.labels.nodes.some(l => l.name.toLowerCase() === 'plumbing / other');
     }
 
     function renderStatusUpdate(issues, fetchedAt) {
