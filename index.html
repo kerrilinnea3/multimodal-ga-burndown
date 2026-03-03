@@ -44,7 +44,7 @@
     /* ── category stat cards ── */
     .stat-cards {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 16px;
       margin-bottom: 28px;
     }
@@ -315,14 +315,6 @@
 
   <h2 class="section-heading">Upcoming and Recent Releases</h2>
 
-  <div class="cat-filter-bar" id="statusCatFilter">
-    <span class="cat-filter-label">Show:</span>
-    <button class="cat-filter-btn active" data-cat="video"    style="--cat-color:#7C3AED" onclick="toggleStatusCat('video',this)">Voice / Video</button>
-    <button class="cat-filter-btn active" data-cat="brain"    style="--cat-color:#0D9488" onclick="toggleStatusCat('brain',this)">Brain</button>
-    <button class="cat-filter-btn active" data-cat="ui"       style="--cat-color:#D97706" onclick="toggleStatusCat('ui',this)">Just UX</button>
-    <button class="cat-filter-btn active" data-cat="plumbing" style="--cat-color:#E11D48" onclick="toggleStatusCat('plumbing',this)">Plumbing</button>
-    <button class="cat-filter-all" onclick="resetStatusCats()">Show All</button>
-  </div>
 
   <!-- ── Status Update ── -->
   <div class="status-update" id="statusUpdate" style="display:none"></div>
@@ -409,7 +401,7 @@
       <div class="stat-card-pct c-plumbing" id="plumbing-pct">—% complete</div>
     </div>
     <!-- Grand Total -->
-    <div class="stat-card grand">
+    <div class="stat-card grand" style="grid-column: span 2;">
       <div class="stat-card-label c-grand">Grand Total</div>
       <div class="stat-card-row"><span>Total</span><span id="grand-total">—</span></div>
       <div class="stat-card-row"><span>Open</span><span id="grand-open">—</span></div>
@@ -1174,7 +1166,6 @@
         if (createdTo   && created > new Date(createdTo + 'T23:59:59')) return false;
 
         if (closedFrom || closedTo) {
-          // If a closed filter is set, non-closed issues are excluded
           if (!issue.completedAt) return false;
           const closed = new Date(issue.completedAt);
           if (closedFrom && closed < new Date(closedFrom)) return false;
