@@ -1073,8 +1073,12 @@
       return issue.labels.nodes.some(l => l.name.toLowerCase() === 'comms');
     }
 
+    function hasPlumbingLabel(issue) {
+      return issue.labels.nodes.some(l => l.name.toLowerCase().includes('plumbing'));
+    }
+
     function renderStatusUpdate(issues, fetchedAt) {
-      const relevant = issues.filter(i => hasCommsLabel(i) || categorize(i) === 'plumbing');
+      const relevant = issues.filter(i => hasCommsLabel(i) || hasPlumbingLabel(i) || categorize(i) !== 'plumbing');
       const container = document.getElementById('statusUpdate');
       container.innerHTML = '';
 
@@ -1107,7 +1111,7 @@
 
       CAT_KEYS.forEach(cat => {
         const catIssues = cat === 'plumbing'
-          ? relevant.filter(i => categorize(i) === 'plumbing' || hasCommsLabel(i))
+          ? issues.filter(i => hasPlumbingLabel(i) || hasCommsLabel(i))
           : relevant.filter(i => categorize(i) === cat);
         const color = COLORS[cat];
 
@@ -1129,7 +1133,7 @@
           `<span>${CAT_NAMES[cat]}</span>` +
           `<span class="cat-status-health">` +
             `<span class="cat-status-health-item"><span class="status-dot ${healthDot(basePct)}"></span><span class="cat-status-health-label">Baseline</span> ${basePct}%</span>` +
-            `<span class="cat-status-health-item"><span class="status-dot ${healthDot(implPct)}"></span><span class="cat-status-health-label">Impl</span> ${implPct}%</span>` +
+            `<span class="cat-status-health-item"><span class="status-dot ${healthDot(implPct)}"></span><span class="cat-status-health-label">Reported Issues</span> ${implPct}%</span>` +
           `</span>`;
         section.appendChild(heading);
 
