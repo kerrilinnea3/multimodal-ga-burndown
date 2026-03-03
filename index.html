@@ -249,24 +249,20 @@
       overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     }
     .cat-status-heading {
-      font-size: 12px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.08em; padding: 11px 16px;
+      font-size: 16px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; padding: 14px 16px;
       border-bottom: 2px solid currentColor;
       display: flex; align-items: center; justify-content: space-between;
     }
     .cat-status-health {
-      display: flex; gap: 14px; text-transform: none; letter-spacing: 0;
+      display: flex; gap: 16px; text-transform: none; letter-spacing: 0;
     }
     .cat-status-health-item {
-      display: flex; align-items: center; gap: 5px;
-      font-size: 14px; font-weight: 600; opacity: 0.9;
+      display: flex; align-items: center; gap: 6px;
+      font-size: 18px; font-weight: 700; opacity: 0.9;
     }
     .cat-status-health-label {
-      font-size: 10px; font-weight: 500; opacity: 0.7;
-    }
-    .cat-theme-summary {
-      padding: 7px 16px 8px; font-size: 11px; color: #64748B;
-      border-bottom: 1px solid #F1F5F9; font-style: italic;
+      font-size: 12px; font-weight: 600; opacity: 0.7;
     }
     .cat-status-group {
       padding: 10px 16px 8px;
@@ -1109,23 +1105,6 @@
         return 'red';
       }
 
-      const STOPWORDS = new Set(['a','an','the','to','for','of','in','on','with','and','or','is','be','by','as','at','from','up','add','fix','update','remove','refactor','feat','chore','revert','enable','disable','support','use','via','per','into','that','this','it','its','not','no','new','old','all','any','when','where','get','set','make','allow','move','show','hide','more','less','other','some','one','two','three','change','changes','create','delete','implement','improve','after','before','during','should','will','can','also','have','has','been','was','were','are','had']);
-
-      function extractThemes(items) {
-        const freq = {};
-        items.forEach(issue => {
-          issue.title.toLowerCase()
-            .replace(/[^a-z0-9\s]/g, ' ')
-            .split(/\s+/)
-            .filter(w => w.length > 3 && !STOPWORDS.has(w))
-            .forEach(w => { freq[w] = (freq[w] || 0) + 1; });
-        });
-        return Object.entries(freq)
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 4)
-          .map(([w]) => w);
-      }
-
       CAT_KEYS.forEach(cat => {
         const catIssues = cat === 'plumbing'
           ? relevant.filter(i => categorize(i) === 'plumbing' || hasCommsLabel(i))
@@ -1153,15 +1132,6 @@
             `<span class="cat-status-health-item"><span class="status-dot ${healthDot(implPct)}"></span><span class="cat-status-health-label">Impl</span> ${implPct}%</span>` +
           `</span>`;
         section.appendChild(heading);
-
-        const releasedItems = catIssues.filter(i => i.state.name === 'Done' || i.state.name === 'Merged');
-        const themes = extractThemes(releasedItems);
-        const themeSummary = document.createElement('div');
-        themeSummary.className = 'cat-theme-summary';
-        themeSummary.textContent = themes.length
-          ? 'Recent themes: ' + themes.join(' · ')
-          : 'No recently released tickets.';
-        section.appendChild(themeSummary);
 
         STATUS_GROUPS.forEach(group => {
           const items = group.filter(catIssues);
