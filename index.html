@@ -248,6 +248,19 @@
       background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px;
       overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     }
+    .release-filter-bar {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 14px; font-size: 13px; color: #64748B;
+    }
+    .release-filter-label { font-weight: 500; }
+    .release-filter-bar input[type="datetime-local"] {
+      border: 1px solid #E2E8F0; border-radius: 5px;
+      padding: 5px 10px; font-size: 13px; color: #0F172A;
+      background: #FFFFFF;
+    }
+    .release-filter-bar input[type="datetime-local"]:focus {
+      outline: none; border-color: #7C3AED;
+    }
     .cat-status-heading {
       font-size: 16px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.08em; padding: 14px 16px;
@@ -327,6 +340,10 @@
 
   <h2 class="section-heading">Upcoming and Recent Releases</h2>
 
+  <div class="release-filter-bar">
+    <span class="release-filter-label">Show changes since</span>
+    <input type="datetime-local" id="releaseSince" onchange="reRenderStatus()" />
+  </div>
 
   <!-- ── Status Update ── -->
   <div class="status-update" id="statusUpdate" style="display:none"></div>
@@ -1078,6 +1095,9 @@
     }
 
     function renderStatusUpdate(issues, fetchedAt) {
+      const sinceVal = document.getElementById('releaseSince').value;
+      const sinceDate = sinceVal ? new Date(sinceVal) : null;
+
       const relevant = issues.filter(i => hasCommsLabel(i) || hasPlumbingLabel(i) || categorize(i) !== 'plumbing');
       const container = document.getElementById('statusUpdate');
       container.innerHTML = '';
@@ -1085,13 +1105,15 @@
       const STATUS_GROUPS = [
         {
           dot: 'green',  label: 'Released to Production',
-          filter: items => items.filter(i => i.state.name === 'Done')
+          filter: items => items
+            .filter(i => i.state.name === 'Done' && (!sinceDate || (i.completedAt && new Date(i.completedAt) >= sinceDate)))
             .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)),
         },
         {
           dot: 'purple', label: 'Released to Dev / QA',
-          filter: items => items.filter(i => i.state.name === 'Merged')
-            .sort((a, b) => a.title.localeCompare(b.title)),
+          filter: items => items
+            .filter(i => i.state.name === 'Merged' && (!sinceDate || (i.completedAt && new Date(i.completedAt) >= sinceDate)))
+            .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)),
         },
         {
           dot: 'yellow', label: 'In Progress',
@@ -1242,8 +1264,15 @@
         '· Next refresh ' + next.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
+    function reRenderStatus() {
+      if (cachedIssues) renderStatusUpdate(cachedIssues, cachedFetchedAt);
+    }
+
     async function init() {
       hideError();
+      // Default release since: last 48 hours
+      const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+      document.getElementById('releaseSince').value = fortyEightHoursAgo.toISOString().slice(0, 16);
       // Default created range: last 7 days
       const today   = new Date();
       const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
