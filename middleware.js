@@ -21,5 +21,6 @@ export function middleware(request) {
 }
 
 export const config = {
+  runtime: 'edge',
   matcher: '/:path*',
 };
