@@ -1,0 +1,11 @@
+{
+  "rewrites": [
+    { "source": "/app", "destination": "/api/app" }
+  ],
+  "redirects": [
+    { "source": "/dashboard.html", "destination": "/", "permanent": false }
+  ],
+  "functions": {
+    "api/app.js": { "includeFiles": "dashboard.html" }
+  }
+}
