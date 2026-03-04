@@ -20,6 +20,7 @@ const QUERY = `
         url
         state { name type }
         labels(first: 10) { nodes { name } }
+        priority
         createdAt
         updatedAt
         completedAt

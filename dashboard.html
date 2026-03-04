@@ -294,6 +294,7 @@
     .status-dot.purple { background: #7C3AED; }
     .status-dot.yellow { background: #F59E0B; }
     .status-dot.red    { background: #EF4444; }
+    .status-dot.blue   { background: #3B82F6; }
     .status-header strong { font-size: 13px; font-weight: 600; color: #0F172A; flex: 1; }
     .status-header .status-window { font-weight: 400; color: #94A3B8; font-size: 11px; }
     .status-count {
@@ -1122,6 +1123,12 @@
               const order = { 'In Progress': 0, 'UAT': 1, 'Under Review': 2 };
               return (order[a.state.name] ?? 9) - (order[b.state.name] ?? 9);
             }),
+        },
+        {
+          dot: 'blue', label: 'Up Next',
+          filter: items => items.filter(i =>
+            i.state.name === 'Planned this cycle' && (i.priority === 1 || i.priority === 2)
+          ).sort((a, b) => a.priority - b.priority),
         },
       ];
 
