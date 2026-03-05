@@ -556,7 +556,7 @@
 
     // ── Data Loading ──
     async function loadData() {
-      const resp = await fetch('./data.json?t=' + Date.now());
+      const resp = await fetch('https://kerrilinnea3.github.io/multimodal-ga-burndown/data.json?t=' + Date.now());
       if (!resp.ok) throw new Error('data.json not found — the fetch workflow may not have run yet. Trigger it manually in GitHub Actions.');
       return resp.json(); // { fetchedAt, issues }
     }
