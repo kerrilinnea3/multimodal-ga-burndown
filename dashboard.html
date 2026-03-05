@@ -1088,7 +1088,7 @@
     };
 
     function hasCommsLabel(issue) {
-      return issue.labels.nodes.some(l => l.name.toLowerCase() === 'comms');
+      return issue.labels.nodes.some(l => ['comms', 'go-live blocker'].includes(l.name.toLowerCase()));
     }
 
     function hasPlumbingLabel(issue) {
